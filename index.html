@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis lecturas — Cronograma</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📇</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="deck">
+
+  <header class="masthead">
+    <div class="masthead__title">
+      <span class="masthead__eyebrow">Fichero de lecturas · UBA</span>
+      <h1>Mis lecturas</h1>
+    </div>
+    <div class="masthead__today" id="masthead-clock"></div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab is-active" data-view="today">
+      <span class="tab__index">01</span>Hoy
+    </button>
+    <button class="tab" data-view="history">
+      <span class="tab__index">02</span>Días anteriores
+    </button>
+    <button class="tab" data-view="progress">
+      <span class="tab__index">03</span>Progreso global
+    </button>
+  </nav>
+
+  <main class="stage">
+
+    <!-- ---------------- VISTA: HOY ---------------- -->
+    <section class="view is-active" id="view-today">
+      <div class="card-index" id="today-card">
+        <div class="card-index__label" id="today-label">—</div>
+        <div class="card-index__sub" id="today-sub"></div>
+      </div>
+      <div class="reading-list" id="today-list">
+        <p class="empty">Cargando lecturas…</p>
+      </div>
+    </section>
+
+    <!-- ---------------- VISTA: DÍAS ANTERIORES ---------------- -->
+    <section class="view" id="view-history">
+      <div class="history-picker">
+        <button class="nav-arrow" id="hist-prev" aria-label="Día anterior">‹</button>
+        <input type="date" id="hist-date">
+        <button class="nav-arrow" id="hist-next" aria-label="Día siguiente">›</button>
+      </div>
+      <div class="card-index card-index--muted" id="hist-card">
+        <div class="card-index__label" id="hist-label">—</div>
+        <div class="card-index__sub" id="hist-sub"></div>
+      </div>
+      <div class="reading-list" id="hist-list">
+        <p class="empty">Elegí una fecha.</p>
+      </div>
+    </section>
+
+    <!-- ---------------- VISTA: PROGRESO GLOBAL ---------------- -->
+    <section class="view" id="view-progress">
+      <div class="totals" id="progress-totals"></div>
+      <div class="subjects" id="progress-subjects"></div>
+    </section>
+
+  </main>
+
+  <footer class="colophon">
+    <span>Sincronizado con Supabase</span>
+    <span class="dot" id="sync-dot" title="estado de sincronización"></span>
+  </footer>
+</div>
+
+<template id="tpl-reading-row">
+  <div class="reading">
+    <div class="reading__swatch"></div>
+    <div class="reading__body">
+      <div class="reading__meta">
+        <span class="reading__subject"></span>
+        <span class="reading__nro"></span>
+      </div>
+      <div class="reading__title"></div>
+      <div class="reading__pages"></div>
+    </div>
+    <div class="reading__actions">
+      <button class="btn-postpone" title="Postergar para el viernes">→ viernes</button>
+      <button class="btn-tick" title="Marcar como leída" aria-label="Marcar como leída">
+        <svg viewBox="0 0 24 24" class="tick-icon"><path d="M4 12.5 L9.5 18 L20 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="reading__stamp">LEÍDO</div>
+  </div>
+</template>
+
+<template id="tpl-subject-block">
+  <div class="subject-block">
+    <div class="subject-block__header">
+      <h3></h3>
+      <div class="subject-block__stats">
+        <span class="stat-pages"></span>
+        <span class="stat-count"></span>
+      </div>
+    </div>
+    <div class="subject-block__bar"><div class="subject-block__bar-fill"></div></div>
+    <div class="subject-block__grid"></div>
+  </div>
+</template>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
