@@ -12,7 +12,7 @@ const SUBJECT_ORDER = [
 const DAY_NAMES = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
 const PROJECT_START = "2026-08-17";
-const PROJECT_END_HINT = "2026-09-18"; // sólo se usa como valor por defecto del selector
+const PROJECT_END_HINT = "2026-09-21"; // sólo se usa como valor por defecto del selector
 
 // ---------------- Supabase init ----------------
 const { createClient } = supabase;
