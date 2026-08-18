@@ -212,13 +212,13 @@ function renderToday() {
 }
 
 function initTodayNav() {
-  // flecha izquierda: días futuros — flecha derecha: días pasados
+  // flecha izquierda: días pasados — flecha derecha: días futuros
   document.getElementById("today-next").addEventListener("click", () => {
-    viewedDate = addDays(viewedDate, 1);
+    viewedDate = addDays(viewedDate, -1);
     renderToday();
   });
   document.getElementById("today-prev").addEventListener("click", () => {
-    viewedDate = addDays(viewedDate, -1);
+    viewedDate = addDays(viewedDate, 1);
     renderToday();
   });
   document.getElementById("today-jump").addEventListener("click", () => {
