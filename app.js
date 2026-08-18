@@ -20,6 +20,8 @@ const sb = createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonK
 
 let READINGS = [];      // cache local de todas las lecturas
 let currentView = "today";
+let adminSearch = "";
+let adminSubjectFilter = "";
 
 // ---------------- Utilidades de fecha ----------------
 function todayISO() {
@@ -112,6 +114,36 @@ async function postpone(reading) {
   if (error) { console.error(error); loadReadings(); }
 }
 
+async function updateReadingDate(reading, newDate) {
+  if (!newDate || newDate === reading.scheduled_date) return;
+  reading.scheduled_date = newDate;
+  renderCurrentView();
+  const { error } = await sb
+    .from("readings")
+    .update({ scheduled_date: newDate })
+    .eq("id", reading.id);
+  if (error) { console.error(error); loadReadings(); }
+}
+
+async function swapDates(dateA, dateB) {
+  if (!dateA || !dateB || dateA === dateB) return;
+  const idsA = READINGS.filter((r) => r.scheduled_date === dateA).map((r) => r.id);
+  const idsB = READINGS.filter((r) => r.scheduled_date === dateB).map((r) => r.id);
+  if (idsA.length === 0 && idsB.length === 0) {
+    alert("No hay lecturas programadas en ninguna de las dos fechas.");
+    return;
+  }
+  // actualización optimista local
+  READINGS.forEach((r) => {
+    if (r.scheduled_date === dateA) r.scheduled_date = dateB;
+    else if (r.scheduled_date === dateB) r.scheduled_date = dateA;
+  });
+  renderCurrentView();
+  if (idsA.length) await sb.from("readings").update({ scheduled_date: dateB }).in("id", idsA);
+  if (idsB.length) await sb.from("readings").update({ scheduled_date: dateA }).in("id", idsB);
+  loadReadings();
+}
+
 // ---------------- Render: fila de lectura ----------------
 function buildReadingRow(reading) {
   const tpl = document.getElementById("tpl-reading-row");
@@ -166,7 +198,7 @@ function renderToday() {
   renderList(
     document.getElementById("today-list"),
     list,
-    "No tenés lecturas programadas para hoy. Fijate en \u201cDías anteriores\u201d si quedó algo pendiente."
+    "No tenés lecturas programadas para hoy. Fijate en \u201cOtros días\u201d si quedó algo pendiente."
   );
 }
 
@@ -191,7 +223,9 @@ function renderHistory() {
 
 function initHistoryControls() {
   const input = document.getElementById("hist-date");
-  input.value = addDays(todayISO(), -1);
+  // arranca en "mañana": la pestaña Hoy ya cubre el día de hoy, así que
+  // esta vista por defecto muestra lo próximo (también se puede ir para atrás)
+  input.value = addDays(todayISO(), 1);
   input.addEventListener("change", renderHistory);
   document.getElementById("hist-prev").addEventListener("click", () => {
     input.value = addDays(input.value || todayISO(), -1);
@@ -199,6 +233,10 @@ function initHistoryControls() {
   });
   document.getElementById("hist-next").addEventListener("click", () => {
     input.value = addDays(input.value || todayISO(), 1);
+    renderHistory();
+  });
+  document.getElementById("hist-today").addEventListener("click", () => {
+    input.value = todayISO();
     renderHistory();
   });
 }
@@ -255,11 +293,90 @@ function renderProgress() {
   });
 }
 
+// ---------------- Vista: ADMINISTRAR ----------------
+function renderAdmin() {
+  const container = document.getElementById("admin-table");
+  const q = adminSearch.trim().toLowerCase();
+  let items = [...READINGS];
+  if (adminSubjectFilter) items = items.filter((r) => r.subject === adminSubjectFilter);
+  if (q) items = items.filter((r) => r.title.toLowerCase().includes(q));
+  items.sort((a, b) => {
+    if (a.scheduled_date !== b.scheduled_date) return a.scheduled_date < b.scheduled_date ? -1 : 1;
+    const ai = SUBJECT_ORDER.indexOf(a.subject);
+    const bi = SUBJECT_ORDER.indexOf(b.subject);
+    if (ai !== bi) return ai - bi;
+    return a.seq - b.seq;
+  });
+
+  container.innerHTML = "";
+  if (items.length === 0) {
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.textContent = "Ninguna lectura coincide con el filtro.";
+    container.appendChild(p);
+    return;
+  }
+
+  const tpl = document.getElementById("tpl-admin-row");
+  items.forEach((r) => {
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    node.dataset.subject = r.subject;
+    node.classList.toggle("is-done", r.status === "done");
+
+    const dateInput = node.querySelector(".admin-row__date");
+    dateInput.value = r.scheduled_date;
+    dateInput.addEventListener("change", () => {
+      updateReadingDate(r, dateInput.value);
+      node.classList.add("is-flash");
+      setTimeout(() => node.classList.remove("is-flash"), 600);
+    });
+
+    node.querySelector(".admin-row__subject").textContent = r.subject;
+    node.querySelector(".admin-row__nro").textContent = `n.º ${r.nro}`;
+    node.querySelector(".admin-row__title").textContent = r.title;
+    node.querySelector(".admin-row__pages").textContent = `${r.pages}p`;
+    node.querySelector(".admin-row__status").addEventListener("click", () => toggleDone(r));
+
+    container.appendChild(node);
+  });
+}
+
+function populateAdminSubjectFilter() {
+  const select = document.getElementById("admin-subject-filter");
+  SUBJECT_ORDER.forEach((s) => {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    select.appendChild(opt);
+  });
+  select.addEventListener("change", () => {
+    adminSubjectFilter = select.value;
+    renderAdmin();
+  });
+}
+
+function initAdminControls() {
+  populateAdminSubjectFilter();
+  document.getElementById("admin-search").addEventListener("input", (e) => {
+    adminSearch = e.target.value;
+    renderAdmin();
+  });
+  document.getElementById("swap-btn").addEventListener("click", () => {
+    const a = document.getElementById("swap-date-a").value;
+    const b = document.getElementById("swap-date-b").value;
+    if (!a || !b) { alert("Elegí las dos fechas a intercambiar."); return; }
+    if (confirm(`¿Intercambiar todas las lecturas entre ${formatLong(a)} y ${formatLong(b)}?`)) {
+      swapDates(a, b);
+    }
+  });
+}
+
 // ---------------- Router de vistas ----------------
 function renderCurrentView() {
   if (currentView === "today") renderToday();
   else if (currentView === "history") renderHistory();
   else if (currentView === "progress") renderProgress();
+  else if (currentView === "admin") renderAdmin();
 }
 
 function setView(view) {
@@ -286,6 +403,7 @@ document.addEventListener("DOMContentLoaded", () => {
     tab.addEventListener("click", () => setView(tab.dataset.view));
   });
   initHistoryControls();
+  initAdminControls();
   tickClock();
   loadReadings();
   subscribeRealtime();

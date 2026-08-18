@@ -184,6 +184,20 @@ body{
   cursor: pointer;
 }
 .nav-arrow:hover{ background: var(--brass-soft); }
+.btn-today{
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--paper-dark);
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  padding: 0 12px;
+  height: 34px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-today:hover{ background: var(--brass-soft); }
 
 /* ---------------- Reading rows ---------------- */
 .reading-list{ display: flex; flex-direction: column; gap: 10px; }
@@ -413,6 +427,172 @@ body{
   pointer-events: none;
 }
 
+/* ---------------- View hint text ---------------- */
+.view-hint{
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin: 0 0 14px;
+}
+
+/* ---------------- Admin: swap tool ---------------- */
+.admin-swap{
+  border: 1px solid var(--line-strong);
+  border-left: 5px solid var(--brass);
+  background: var(--paper-raised);
+  padding: 14px 18px;
+  border-radius: 2px;
+  margin-bottom: 18px;
+}
+.admin-swap h3{
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+.admin-swap__row{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.admin-swap__row input[type="date"]{
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 7px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  background: var(--paper-dark);
+  color: var(--ink);
+}
+.swap-icon{
+  font-size: 16px;
+  color: var(--brass);
+}
+.btn-brass{
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--paper-raised);
+  background: var(--brass);
+  border: none;
+  border-radius: 2px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.btn-brass:hover{ background: #8F6122; }
+.admin-swap__hint{
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  margin: 8px 0 0;
+}
+
+/* ---------------- Admin: filters ---------------- */
+.admin-filters{
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.admin-filters input[type="text"]{
+  flex: 1;
+  min-width: 160px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+.admin-filters select{
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
+/* ---------------- Admin: table ---------------- */
+.admin-table{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.admin-row{
+  display: grid;
+  grid-template-columns: 128px 6px 1fr 64px 34px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: var(--paper-raised);
+  border-radius: 2px;
+  padding: 7px 10px;
+  transition: background .4s ease;
+}
+.admin-row.is-flash{ background: #EFE3C4; }
+.admin-row__date{
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 5px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  background: var(--paper-dark);
+  color: var(--ink);
+}
+.admin-row__swatch{ width: 6px; align-self: stretch; border-radius: 2px; }
+.admin-row[data-subject="Antropología"] .admin-row__swatch{ background: var(--antro); }
+.admin-row[data-subject="Historia económica internacional"] .admin-row__swatch{ background: var(--econ); }
+.admin-row[data-subject="Historia de las ideas políticas"] .admin-row__swatch{ background: var(--ideas); }
+.admin-row[data-subject="Europa en el siglo XX"] .admin-row__swatch{ background: var(--europa); }
+.admin-row__info{ min-width: 0; }
+.admin-row__meta{
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+  display: flex; gap: 6px;
+}
+.admin-row__title{
+  font-size: 13px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-row__pages{
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-align: right;
+  white-space: nowrap;
+}
+.admin-row__status{
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--stamp-red-soft);
+  background: transparent;
+  cursor: pointer;
+}
+.admin-row.is-done .admin-row__status{
+  background: var(--stamp-green);
+  border-color: var(--stamp-green);
+}
+.admin-row.is-done .admin-row__title{ color: var(--ink-soft); }
+
+@media (max-width: 620px){
+  .admin-row{ grid-template-columns: 110px 5px 1fr 30px; }
+  .admin-row__pages{ display: none; }
+}
+
 /* ---------------- Footer ---------------- */
 .colophon{
   display: flex;
@@ -447,7 +627,7 @@ button:focus-visible, input:focus-visible{
   .masthead{ flex-direction: column; align-items: flex-start; }
   .masthead__today{ text-align: left; }
   .tabs{ flex-wrap: wrap; }
-  .tab{ flex: 1 1 30%; clip-path: none !important; }
+  .tab{ flex: 1 1 45%; clip-path: none !important; }
   .stage{ padding: 16px; }
   .reading{ flex-wrap: wrap; }
   .reading__actions{ width: 100%; justify-content: flex-end; border-top: 1px dashed var(--line); }

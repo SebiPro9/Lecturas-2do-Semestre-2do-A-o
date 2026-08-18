@@ -27,10 +27,13 @@
       <span class="tab__index">01</span>Hoy
     </button>
     <button class="tab" data-view="history">
-      <span class="tab__index">02</span>Días anteriores
+      <span class="tab__index">02</span>Otros días
     </button>
     <button class="tab" data-view="progress">
       <span class="tab__index">03</span>Progreso global
+    </button>
+    <button class="tab" data-view="admin">
+      <span class="tab__index">04</span>Administrar
     </button>
   </nav>
 
@@ -49,10 +52,12 @@
 
     <!-- ---------------- VISTA: DÍAS ANTERIORES ---------------- -->
     <section class="view" id="view-history">
+      <p class="view-hint">Navegá a cualquier fecha del cronograma, pasada o futura, para revisarla o modificarla.</p>
       <div class="history-picker">
         <button class="nav-arrow" id="hist-prev" aria-label="Día anterior">‹</button>
         <input type="date" id="hist-date">
         <button class="nav-arrow" id="hist-next" aria-label="Día siguiente">›</button>
+        <button class="btn-today" id="hist-today">Hoy</button>
       </div>
       <div class="card-index card-index--muted" id="hist-card">
         <div class="card-index__label" id="hist-label">—</div>
@@ -67,6 +72,29 @@
     <section class="view" id="view-progress">
       <div class="totals" id="progress-totals"></div>
       <div class="subjects" id="progress-subjects"></div>
+    </section>
+
+    <!-- ---------------- VISTA: ADMINISTRAR ---------------- -->
+    <section class="view" id="view-admin">
+      <div class="admin-swap">
+        <h3>Intercambiar lecturas entre dos días</h3>
+        <div class="admin-swap__row">
+          <input type="date" id="swap-date-a" aria-label="Primer día">
+          <span class="swap-icon">⇄</span>
+          <input type="date" id="swap-date-b" aria-label="Segundo día">
+          <button class="btn-brass" id="swap-btn">Intercambiar</button>
+        </div>
+        <p class="admin-swap__hint">Todo lo que esté programado en el primer día pasa al segundo, y viceversa.</p>
+      </div>
+
+      <div class="admin-filters">
+        <input type="text" id="admin-search" placeholder="Buscar por título…">
+        <select id="admin-subject-filter">
+          <option value="">Todas las materias</option>
+        </select>
+      </div>
+
+      <div class="admin-table" id="admin-table"></div>
     </section>
 
   </main>
@@ -95,6 +123,22 @@
       </button>
     </div>
     <div class="reading__stamp">LEÍDO</div>
+  </div>
+</template>
+
+<template id="tpl-admin-row">
+  <div class="admin-row">
+    <input type="date" class="admin-row__date">
+    <div class="admin-row__swatch"></div>
+    <div class="admin-row__info">
+      <div class="admin-row__meta">
+        <span class="admin-row__subject"></span>
+        <span class="admin-row__nro"></span>
+      </div>
+      <div class="admin-row__title"></div>
+    </div>
+    <div class="admin-row__pages"></div>
+    <button class="admin-row__status" title="Marcar leída / pendiente"></button>
   </div>
 </template>
 
