@@ -26,14 +26,11 @@
     <button class="tab is-active" data-view="today">
       <span class="tab__index">01</span>Hoy
     </button>
-    <button class="tab" data-view="history">
-      <span class="tab__index">02</span>Otros días
-    </button>
     <button class="tab" data-view="progress">
-      <span class="tab__index">03</span>Progreso global
+      <span class="tab__index">02</span>Progreso global
     </button>
     <button class="tab" data-view="admin">
-      <span class="tab__index">04</span>Administrar
+      <span class="tab__index">03</span>Administrar
     </button>
   </nav>
 
@@ -42,29 +39,18 @@
     <!-- ---------------- VISTA: HOY ---------------- -->
     <section class="view is-active" id="view-today">
       <div class="card-index" id="today-card">
-        <div class="card-index__label" id="today-label">—</div>
-        <div class="card-index__sub" id="today-sub"></div>
+        <div class="card-index__nav">
+          <button class="nav-arrow" id="today-next" aria-label="Ir a un día futuro" title="Día futuro">‹</button>
+          <div class="card-index__nav-text">
+            <div class="card-index__label" id="today-label">—</div>
+            <div class="card-index__sub" id="today-sub"></div>
+          </div>
+          <button class="nav-arrow" id="today-prev" aria-label="Ir a un día pasado" title="Día pasado">›</button>
+        </div>
+        <button class="btn-today" id="today-jump">Volver a hoy</button>
       </div>
       <div class="reading-list" id="today-list">
         <p class="empty">Cargando lecturas…</p>
-      </div>
-    </section>
-
-    <!-- ---------------- VISTA: DÍAS ANTERIORES ---------------- -->
-    <section class="view" id="view-history">
-      <p class="view-hint">Navegá a cualquier fecha del cronograma, pasada o futura, para revisarla o modificarla.</p>
-      <div class="history-picker">
-        <button class="nav-arrow" id="hist-prev" aria-label="Día anterior">‹</button>
-        <input type="date" id="hist-date">
-        <button class="nav-arrow" id="hist-next" aria-label="Día siguiente">›</button>
-        <button class="btn-today" id="hist-today">Hoy</button>
-      </div>
-      <div class="card-index card-index--muted" id="hist-card">
-        <div class="card-index__label" id="hist-label">—</div>
-        <div class="card-index__sub" id="hist-sub"></div>
-      </div>
-      <div class="reading-list" id="hist-list">
-        <p class="empty">Elegí una fecha.</p>
       </div>
     </section>
 

@@ -184,60 +184,46 @@ function renderList(container, readings, emptyMsg) {
   sorted.forEach((r) => container.appendChild(buildReadingRow(r)));
 }
 
-// ---------------- Vista: HOY ----------------
+// ---------------- Vista: HOY (navegable con flechas) ----------------
+let viewedDate = todayISO();
+
 function renderToday() {
-  const iso = todayISO();
+  const iso = viewedDate;
+  const isToday = iso === todayISO();
   const list = READINGS.filter((r) => r.scheduled_date === iso);
-  document.getElementById("today-label").textContent = formatLong(iso);
+
+  const label = formatLong(iso) + (isToday ? " · hoy" : "");
+  document.getElementById("today-label").textContent = label;
+
   const done = list.filter((r) => r.status === "done").length;
   const pages = list.reduce((s, r) => s + r.pages, 0);
   document.getElementById("today-sub").textContent =
     list.length === 0
-      ? "sin lecturas programadas para hoy"
+      ? "sin lecturas programadas este día"
       : `${list.length} lectura${list.length===1?"":"s"} · ${pages} páginas · ${done}/${list.length} leídas`;
+
+  document.getElementById("today-jump").hidden = isToday;
+
   renderList(
     document.getElementById("today-list"),
     list,
-    "No tenés lecturas programadas para hoy. Fijate en \u201cOtros días\u201d si quedó algo pendiente."
+    "No hay lecturas programadas para este día."
   );
 }
 
-// ---------------- Vista: DÍAS ANTERIORES ----------------
-function renderHistory() {
-  const input = document.getElementById("hist-date");
-  const iso = input.value || todayISO();
-  const list = READINGS.filter((r) => r.scheduled_date === iso);
-  document.getElementById("hist-label").textContent = formatLong(iso);
-  const done = list.filter((r) => r.status === "done").length;
-  const pages = list.reduce((s, r) => s + r.pages, 0);
-  document.getElementById("hist-sub").textContent =
-    list.length === 0
-      ? "sin lecturas programadas ese día"
-      : `${list.length} lectura${list.length===1?"":"s"} · ${pages} páginas · ${done}/${list.length} leídas`;
-  renderList(
-    document.getElementById("hist-list"),
-    list,
-    "No hay lecturas programadas para esta fecha."
-  );
-}
-
-function initHistoryControls() {
-  const input = document.getElementById("hist-date");
-  // arranca en "mañana": la pestaña Hoy ya cubre el día de hoy, así que
-  // esta vista por defecto muestra lo próximo (también se puede ir para atrás)
-  input.value = addDays(todayISO(), 1);
-  input.addEventListener("change", renderHistory);
-  document.getElementById("hist-prev").addEventListener("click", () => {
-    input.value = addDays(input.value || todayISO(), -1);
-    renderHistory();
+function initTodayNav() {
+  // flecha izquierda: días futuros — flecha derecha: días pasados
+  document.getElementById("today-next").addEventListener("click", () => {
+    viewedDate = addDays(viewedDate, 1);
+    renderToday();
   });
-  document.getElementById("hist-next").addEventListener("click", () => {
-    input.value = addDays(input.value || todayISO(), 1);
-    renderHistory();
+  document.getElementById("today-prev").addEventListener("click", () => {
+    viewedDate = addDays(viewedDate, -1);
+    renderToday();
   });
-  document.getElementById("hist-today").addEventListener("click", () => {
-    input.value = todayISO();
-    renderHistory();
+  document.getElementById("today-jump").addEventListener("click", () => {
+    viewedDate = todayISO();
+    renderToday();
   });
 }
 
@@ -374,7 +360,6 @@ function initAdminControls() {
 // ---------------- Router de vistas ----------------
 function renderCurrentView() {
   if (currentView === "today") renderToday();
-  else if (currentView === "history") renderHistory();
   else if (currentView === "progress") renderProgress();
   else if (currentView === "admin") renderAdmin();
 }
@@ -402,7 +387,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => setView(tab.dataset.view));
   });
-  initHistoryControls();
+  initTodayNav();
   initAdminControls();
   tickClock();
   loadReadings();

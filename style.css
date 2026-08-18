@@ -145,6 +145,12 @@ body{
   border-radius: 2px;
 }
 .card-index--muted{ border-left-color: var(--ink-faint); }
+.card-index__nav{
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.card-index__nav-text{ flex: 1; min-width: 0; text-align: center; }
 .card-index__label{
   font-family: var(--font-display);
   font-weight: 600;
@@ -157,22 +163,12 @@ body{
   color: var(--ink-soft);
   margin-top: 3px;
 }
+.card-index .btn-today{
+  display: block;
+  margin: 12px auto 0;
+}
+.card-index .btn-today[hidden]{ display: none; }
 
-/* ---------------- History date picker ---------------- */
-.history-picker{
-  display:flex; align-items:center; gap: 10px;
-  margin-bottom: 16px;
-}
-.history-picker input[type="date"]{
-  font-family: var(--font-mono);
-  font-size: 14px;
-  padding: 8px 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: 2px;
-  background: var(--paper-raised);
-  color: var(--ink);
-  flex: 1;
-}
 .nav-arrow{
   width: 34px; height: 34px;
   border: 1px solid var(--line-strong);
@@ -182,6 +178,7 @@ body{
   line-height: 1;
   border-radius: 2px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 .nav-arrow:hover{ background: var(--brass-soft); }
 .btn-today{
