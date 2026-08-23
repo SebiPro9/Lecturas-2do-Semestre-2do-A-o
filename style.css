@@ -13,8 +13,8 @@
   --brass:        #A8752B;
   --brass-soft:   #D9B778;
   --stamp-green:  #2E6B4C;
-  --stamp-red:    #A2402C;
-  --stamp-red-soft: #D98C79;
+  --stamp-red:    #6B7280; /* antes rojo de "peligro"; ahora gris neutro — lo pendiente no es una alarma */
+  --stamp-red-soft: #B9C0C9;
 
   --antro:        #7C5A3B; /* clay */
   --econ:         #2E6B6E; /* teal */

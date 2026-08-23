@@ -197,10 +197,22 @@ function renderToday() {
 
   const done = list.filter((r) => r.status === "done").length;
   const pages = list.reduce((s, r) => s + r.pages, 0);
-  document.getElementById("today-sub").textContent =
-    list.length === 0
-      ? "sin lecturas programadas este día"
-      : `${list.length} lectura${list.length===1?"":"s"} · ${pages} páginas · ${done}/${list.length} leídas`;
+  const subEl = document.getElementById("today-sub");
+
+  if (list.length === 0) {
+    subEl.textContent = isToday ? "nada programado por ahora" : "sin lecturas programadas este día";
+  } else if (isToday) {
+    // en Hoy no lideramos con el total de páginas: se ve, pero no es lo primero que pesa
+    if (done === list.length) {
+      subEl.textContent = `listo — ${list.length} de ${list.length} hecha${list.length===1?"":"s"}`;
+    } else {
+      const restantes = list.length - done;
+      subEl.textContent = `${restantes} lectura${restantes===1?"":"s"} por hacer hoy, nada más`;
+    }
+  } else {
+    // en otros días (planificación) sí mostramos el detalle completo
+    subEl.textContent = `${list.length} lectura${list.length===1?"":"s"} · ${pages} páginas · ${done}/${list.length} leídas`;
+  }
 
   document.getElementById("today-jump").hidden = isToday;
 
