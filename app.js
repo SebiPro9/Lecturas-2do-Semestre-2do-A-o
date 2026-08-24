@@ -96,17 +96,31 @@ async function toggleDone(reading) {
     status: newStatus,
     completed_at: newStatus === "done" ? new Date().toISOString() : null,
   };
-  // actualización optimista
   Object.assign(reading, patch);
   renderCurrentView();
+  if (newStatus === "done") {
+    showToast("¡Leída! 🌿", "done");
+  }
   const { error } = await sb.from("readings").update(patch).eq("id", reading.id);
   if (error) { console.error(error); loadReadings(); }
 }
 
-async function postpone(reading) {
-  const newDate = nextFridayAfter(reading.scheduled_date);
+async function moveReading(reading, newDate, originEl) {
+  if (!newDate || newDate === reading.scheduled_date) return;
+  const isAdvance = newDate < reading.original_date;
+  const isPostpone = newDate > reading.scheduled_date;
   reading.scheduled_date = newDate;
   renderCurrentView();
+
+  if (isAdvance) {
+    showToast("¡Vas adelantado! 🌱", "advance");
+    if (originEl) burstConfetti(originEl, ["#E0A736", "#2E6B4C", "#8A9A2E"]);
+  } else if (isPostpone) {
+    showToast("Reprogramado. Sin drama.", "postpone");
+  } else {
+    showToast("Movido.", "postpone");
+  }
+
   const { error } = await sb
     .from("readings")
     .update({ scheduled_date: newDate })
@@ -115,9 +129,12 @@ async function postpone(reading) {
 }
 
 async function updateReadingDate(reading, newDate) {
+  // usado desde Administrar: cambio directo, sin popover ni celebracion grande
   if (!newDate || newDate === reading.scheduled_date) return;
+  const isAdvance = newDate < reading.original_date;
   reading.scheduled_date = newDate;
   renderCurrentView();
+  if (isAdvance) showToast("¡Vas adelantado! 🌱", "advance");
   const { error } = await sb
     .from("readings")
     .update({ scheduled_date: newDate })
@@ -144,6 +161,88 @@ async function swapDates(dateA, dateB) {
   loadReadings();
 }
 
+// ---------------- Efectos: confetti y toasts ----------------
+function burstConfetti(originEl, colors) {
+  const rect = originEl.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const wrap = document.createElement("div");
+  wrap.className = "confetti-burst";
+  wrap.style.left = cx + "px";
+  wrap.style.top = cy + "px";
+  const n = 16;
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement("div");
+    p.className = "confetti-piece";
+    const angle = (Math.PI * 2 * i) / n + Math.random() * 0.4;
+    const dist = 40 + Math.random() * 50;
+    p.style.setProperty("--dx", Math.cos(angle) * dist + "px");
+    p.style.setProperty("--dy", Math.sin(angle) * dist + "px");
+    p.style.setProperty("--rot", Math.round(Math.random() * 360) + "deg");
+    p.style.background = colors[i % colors.length];
+    wrap.appendChild(p);
+  }
+  document.body.appendChild(wrap);
+  setTimeout(() => wrap.remove(), 950);
+}
+
+let toastTimer = null;
+function showToast(text, kind) {
+  let el = document.getElementById("app-toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "app-toast";
+    el.className = "toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.className = `toast toast--${kind} is-visible`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("is-visible"), 2200);
+}
+
+// ---------------- Popover de fecha ----------------
+function closeAllDatePopovers(except) {
+  document.querySelectorAll(".date-popover.is-open").forEach((p) => {
+    if (p !== except) p.classList.remove("is-open");
+  });
+}
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".reading__actions")) closeAllDatePopovers(null);
+});
+
+function wireDatePopover(node, reading) {
+  const btn = node.querySelector(".btn-date");
+  const pop = node.querySelector(".date-popover");
+  const input = node.querySelector(".date-popover__input");
+  input.value = reading.scheduled_date;
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const willOpen = !pop.classList.contains("is-open");
+    closeAllDatePopovers(pop);
+    pop.classList.toggle("is-open", willOpen);
+  });
+
+  node.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const quick = chip.dataset.quick;
+      let d;
+      if (quick === "hoy") d = todayISO();
+      else if (quick === "manana") d = addDays(todayISO(), 1);
+      else if (quick === "viernes") d = nextFridayAfter(reading.scheduled_date);
+      input.value = d;
+    });
+  });
+
+  node.querySelector(".date-popover__apply").addEventListener("click", (e) => {
+    e.stopPropagation();
+    moveReading(reading, input.value, btn);
+    pop.classList.remove("is-open");
+  });
+}
+
 // ---------------- Render: fila de lectura ----------------
 function buildReadingRow(reading) {
   const tpl = document.getElementById("tpl-reading-row");
@@ -159,10 +258,23 @@ function buildReadingRow(reading) {
     : `${reading.pages} pág.`;
   node.querySelector(".reading__pages").textContent = pagesTxt;
 
-  node.querySelector(".btn-tick").addEventListener("click", () => toggleDone(reading));
-  node.querySelector(".btn-postpone").addEventListener("click", () => postpone(reading));
+  node.querySelector(".btn-tick").addEventListener("click", (e) => {
+    if (reading.status !== "done") burstConfetti(e.currentTarget, [
+      getComputedStyle(document.documentElement).getPropertyValue("--" + subjectColorVar(reading.subject)).trim() || "#2E6B4C",
+      "#E0A736", "#8FB2AE"
+    ]);
+    toggleDone(reading);
+  });
+  wireDatePopover(node, reading);
 
   return node;
+}
+
+function subjectColorVar(subject) {
+  if (subject === "Antropología") return "antro";
+  if (subject === "Historia económica internacional") return "econ";
+  if (subject === "Historia de las ideas políticas") return "ideas";
+  return "europa";
 }
 
 function renderList(container, readings, emptyMsg) {
@@ -369,11 +481,212 @@ function initAdminControls() {
   });
 }
 
+// ============================================================
+// CENTRO DE RELAJACIÓN — lógica de TIERRA
+// Guarda todo en la tabla "checkins" (Supabase), separado de
+// las lecturas: esto no administra el atraso académico, sólo
+// la relación con él.
+// ============================================================
+
+let CHECKINS = [];
+let favoritePhrases = new Set();
+let selectedEstado = null;
+
+const NO_EMERGENCIA_PHRASES = [
+  "Estoy atrasado. No estoy en peligro.",
+  "No necesito recuperar todo ahora.",
+  "No tengo que sentirme motivado para empezar.",
+  "Puedo hacer poco.",
+  "Puedo descansar sin escapar.",
+  "Puedo estar incómodo sin huir.",
+  "El celular me ofrece alivio, no solución.",
+  "El hecho de que algo sea importante no significa que deba resolverlo inmediatamente.",
+  "Mañana no necesita ser perfecto. Necesita ser habitable.",
+];
+
+async function loadCheckins() {
+  const since = addDays(todayISO(), -30);
+  const { data, error } = await sb
+    .from("checkins")
+    .select("*")
+    .gte("created_at", since + "T00:00:00")
+    .order("created_at", { ascending: false });
+  if (error) { console.error(error); return; }
+  CHECKINS = data || [];
+  const favRow = CHECKINS.find((c) => c.kind === "favoritos");
+  favoritePhrases = new Set(favRow?.payload?.phrases || []);
+  if (currentView === "relax") renderRelax();
+}
+
+async function logCheckin(kind, payload) {
+  const row = { kind, payload: payload || {} };
+  CHECKINS.unshift({ ...row, created_at: new Date().toISOString() });
+  if (currentView === "relax") renderRelax();
+  const { error } = await sb.from("checkins").insert(row);
+  if (error) console.error(error);
+}
+
+function startOfWeekISO() {
+  const d = dateFromISO(todayISO());
+  const day = d.getDay(); // 0 domingo
+  const diffToMonday = day === 0 ? 6 : day - 1;
+  d.setDate(d.getDate() - diffToMonday);
+  return isoFromDate(d);
+}
+
+function renderRelax() {
+  const todayIso = todayISO();
+  const weekStart = startOfWeekISO();
+
+  const retornosHoy = CHECKINS.filter(
+    (c) => c.kind === "retorno" && c.created_at.slice(0, 10) === todayIso
+  ).length;
+  const retornosSemana = CHECKINS.filter(
+    (c) => c.kind === "retorno" && c.created_at.slice(0, 10) >= weekStart
+  ).length;
+  document.getElementById("retornos-hoy").textContent = retornosHoy;
+  document.getElementById("retornos-semana").textContent = retornosSemana;
+
+  // tira de la semana: hoja si hubo retorno ese día, circulo vacio si no
+  const weekEl = document.getElementById("tierra-week");
+  weekEl.innerHTML = "";
+  for (let i = 6; i >= 0; i--) {
+    const iso = addDays(todayIso, -i);
+    const hasReturn = CHECKINS.some((c) => c.kind === "retorno" && c.created_at.slice(0, 10) === iso);
+    const wrap = document.createElement("div");
+    wrap.className = "tierra-week__day";
+    const label = document.createElement("div");
+    label.className = "tierra-week__label";
+    label.textContent = DAY_NAMES[dateFromISO(iso).getDay()].slice(0, 2);
+    wrap.appendChild(iconLeafOrCircle(hasReturn));
+    wrap.appendChild(label);
+    weekEl.appendChild(wrap);
+  }
+
+  // frases "no es una emergencia"
+  const phrasesEl = document.getElementById("tierra-phrases");
+  phrasesEl.innerHTML = "";
+  NO_EMERGENCIA_PHRASES.forEach((text) => {
+    const row = document.createElement("div");
+    row.className = "tierra-phrase";
+    const span = document.createElement("span");
+    span.textContent = text;
+    const star = document.createElement("button");
+    star.className = "tierra-phrase__star" + (favoritePhrases.has(text) ? " is-fav" : "");
+    star.textContent = favoritePhrases.has(text) ? "★" : "☆";
+    star.addEventListener("click", () => toggleFavoritePhrase(text));
+    row.appendChild(span);
+    row.appendChild(star);
+    phrasesEl.appendChild(row);
+  });
+
+  document.querySelectorAll(".tierra-state-btn").forEach((b) => {
+    b.classList.toggle("is-selected", b.dataset.estado === selectedEstado);
+  });
+}
+
+function iconLeafOrCircle(filled) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "leaf-icon");
+  if (filled) {
+    svg.innerHTML = `<path d="M4 20c8-1 14-7 15-15C11 6 5 12 4 20Z" fill="#6B7F5E"/>`;
+  } else {
+    svg.innerHTML = `<circle cx="12" cy="12" r="7" fill="none" stroke="#C9C3B2" stroke-width="1.5"/>`;
+  }
+  return svg;
+}
+
+function toggleFavoritePhrase(text) {
+  if (favoritePhrases.has(text)) favoritePhrases.delete(text);
+  else favoritePhrases.add(text);
+  renderRelax();
+  logCheckin("favoritos", { phrases: Array.from(favoritePhrases) });
+}
+
+function initRelaxControls() {
+  document.querySelectorAll(".tierra-state-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      selectedEstado = btn.dataset.estado;
+      renderRelax();
+      logCheckin("estado", { estado: selectedEstado });
+    });
+  });
+
+  document.getElementById("btn-volver-tierra").addEventListener("click", openRitual);
+  document.getElementById("btn-registrar-retorno").addEventListener("click", openRetornoManual);
+  document.getElementById("retorno-close").addEventListener("click", closeRetornoManual);
+  document.querySelectorAll("#retorno-options .ritual-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      logCheckin("retorno", { tipo: chip.textContent });
+      showToast("Volviste. Eso ya es todo. 🌿", "advance");
+      closeRetornoManual();
+    });
+  });
+
+  // --- ritual VOLVER A TIERRA ---
+  const overlay = document.getElementById("ritual-overlay");
+  document.getElementById("ritual-close").addEventListener("click", closeRitual);
+  overlay.querySelectorAll("[data-next]").forEach((btn) => {
+    btn.addEventListener("click", () => ritualGoToStep(currentRitualStep() + 1));
+  });
+  overlay.querySelectorAll("#ritual-body-options .ritual-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      overlay.querySelectorAll("#ritual-body-options .ritual-chip").forEach((c) => c.classList.remove("is-selected"));
+      chip.classList.add("is-selected");
+    });
+  });
+  document.querySelector("[data-finish-yes]").addEventListener("click", () => {
+    finishRitual(true);
+  });
+  document.querySelector("[data-finish-no]").addEventListener("click", () => {
+    finishRitual(false);
+  });
+  document.getElementById("ritual-done-btn").addEventListener("click", closeRitual);
+}
+
+function currentRitualStep() {
+  const active = document.querySelector(".ritual-step.is-active");
+  return active ? Number(active.dataset.step) : 1;
+}
+function ritualGoToStep(n) {
+  document.querySelectorAll(".ritual-step").forEach((s) => {
+    s.classList.toggle("is-active", Number(s.dataset.step) === n);
+  });
+}
+function openRitual() {
+  ritualGoToStep(1);
+  document.getElementById("ritual-nombrar").value = "";
+  document.getElementById("ritual-overlay").classList.add("is-open");
+}
+function closeRitual() {
+  document.getElementById("ritual-overlay").classList.remove("is-open");
+}
+function finishRitual(permitted) {
+  const nombrar = document.getElementById("ritual-nombrar").value.trim();
+  if (nombrar) logCheckin("nombrar", { texto: nombrar, permitido: permitted });
+  logCheckin("retorno", { tipo: "ritual volver a tierra" });
+  ritualGoToStep(5);
+  if (!permitted) {
+    // igual mostramos el cierre calido, sin marcar esto como un "no" fallido
+    document.querySelector('[data-step="5"] .ritual-text').textContent = "Está bien. No hace falta conseguir calma. Ya volviste.";
+  } else {
+    document.querySelector('[data-step="5"] .ritual-text').textContent = "Ya estás acá.";
+  }
+}
+function openRetornoManual() {
+  document.getElementById("retorno-overlay").classList.add("is-open");
+}
+function closeRetornoManual() {
+  document.getElementById("retorno-overlay").classList.remove("is-open");
+}
+
 // ---------------- Router de vistas ----------------
 function renderCurrentView() {
   if (currentView === "today") renderToday();
   else if (currentView === "progress") renderProgress();
   else if (currentView === "admin") renderAdmin();
+  else if (currentView === "relax") renderRelax();
 }
 
 function setView(view) {
@@ -401,7 +714,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   initTodayNav();
   initAdminControls();
+  initRelaxControls();
   tickClock();
   loadReadings();
+  loadCheckins();
   subscribeRealtime();
 });

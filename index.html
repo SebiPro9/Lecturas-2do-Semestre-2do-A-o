@@ -27,10 +27,13 @@
       <span class="tab__index">01</span>Hoy
     </button>
     <button class="tab" data-view="progress">
-      <span class="tab__index">02</span>Progreso global
+      <span class="tab__index">02</span>Progreso
     </button>
     <button class="tab" data-view="admin">
       <span class="tab__index">03</span>Administrar
+    </button>
+    <button class="tab" data-view="relax">
+      <span class="tab__index">04</span>Relajación
     </button>
   </nav>
 
@@ -83,12 +86,122 @@
       <div class="admin-table" id="admin-table"></div>
     </section>
 
+    <!-- ---------------- VISTA: CENTRO DE RELAJACIÓN ---------------- -->
+    <section class="view" id="view-relax">
+
+      <div class="tierra-hero">
+        <svg class="tierra-hero__svg" viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="165" cy="30" r="18" fill="#E3B562" opacity="0.85"/>
+          <path d="M0 95 Q40 55 80 90 T160 85 T220 95 V120 H0 Z" fill="#8FB2AE" opacity="0.55"/>
+          <path d="M0 105 Q50 75 100 100 T220 100 V120 H0 Z" fill="#6B7F5E" opacity="0.75"/>
+          <path d="M40 95 C40 80 48 68 55 68 C62 68 70 80 70 95 Z" fill="#5C6E4F"/>
+          <path d="M150 98 C150 85 157 75 163 75 C169 75 176 85 176 98 Z" fill="#5C6E4F"/>
+        </svg>
+        <div class="tierra-hero__word">TIERRA</div>
+        <div class="tierra-hero__sub">No tenés que resolver todo ahora.<br>Primero, volvé.</div>
+      </div>
+
+      <div class="tierra-question">¿Dónde estás ahora?</div>
+      <div class="tierra-states" id="tierra-states">
+        <button class="tierra-state-btn" data-estado="escapando">Estoy escapando</button>
+        <button class="tierra-state-btn" data-estado="ansioso">Estoy ansioso</button>
+        <button class="tierra-state-btn" data-estado="disperso">Estoy disperso</button>
+        <button class="tierra-state-btn" data-estado="presente">Estoy bastante presente</button>
+      </div>
+
+      <div class="tierra-volver-wrap">
+        <button class="btn-volver-tierra" id="btn-volver-tierra">VOLVER A TIERRA</button>
+      </div>
+
+      <div class="tierra-retornos">
+        <div class="retorno-stat">
+          <div class="retorno-stat__value" id="retornos-hoy">0</div>
+          <div class="retorno-stat__label">Retornos hoy</div>
+        </div>
+        <div class="retorno-stat">
+          <div class="retorno-stat__value" id="retornos-semana">0</div>
+          <div class="retorno-stat__label">Esta semana</div>
+        </div>
+      </div>
+      <button class="btn-registrar-retorno" id="btn-registrar-retorno">+ registrar un retorno</button>
+
+      <div class="tierra-week" id="tierra-week"></div>
+
+      <div class="tierra-section-title">No es una emergencia</div>
+      <div class="tierra-phrases" id="tierra-phrases"></div>
+
+    </section>
+
   </main>
 
   <footer class="colophon">
     <span>Sincronizado con Supabase</span>
     <span class="dot" id="sync-dot" title="estado de sincronización"></span>
   </footer>
+</div>
+
+<!-- ---------------- Ritual VOLVER A TIERRA ---------------- -->
+<div class="ritual-overlay" id="ritual-overlay">
+  <button class="ritual-close" id="ritual-close" aria-label="Cerrar">×</button>
+  <div class="ritual-card">
+    <div class="ritual-breath"></div>
+
+    <div class="ritual-step is-active" data-step="1">
+      <div class="ritual-text">No hagas nada todavía.</div>
+      <div class="ritual-text--soft">Mirá alrededor. ¿Dónde estás?</div>
+      <button class="ritual-btn" data-next>Estoy acá.</button>
+    </div>
+
+    <div class="ritual-step" data-step="2">
+      <div class="ritual-text--soft">Apoyá los pies en el suelo.<br>Soltá los hombros.<br>Exhalá lentamente.</div>
+      <div class="ritual-text" style="font-size:17px;">¿Qué sentís en el cuerpo?</div>
+      <div class="ritual-options" id="ritual-body-options">
+        <button class="ritual-chip">tensión</button>
+        <button class="ritual-chip">inquietud</button>
+        <button class="ritual-chip">cansancio</button>
+        <button class="ritual-chip">aceleración</button>
+        <button class="ritual-chip">vacío</button>
+        <button class="ritual-chip">nada particular</button>
+      </div>
+      <button class="ritual-btn" data-next>Seguir</button>
+    </div>
+
+    <div class="ritual-step" data-step="3">
+      <div class="ritual-text" style="font-size:19px;">¿De qué estás escapando ahora mismo?</div>
+      <textarea class="ritual-textarea" id="ritual-nombrar" placeholder="del atraso · de empezar · de sentir que no llego · de pensar en mañana…"></textarea>
+      <div class="ritual-text--soft" style="margin-bottom:18px;">Nombrarlo no significa resolverlo.</div>
+      <button class="ritual-btn" data-next>Lo veo.</button>
+    </div>
+
+    <div class="ritual-step" data-step="4">
+      <div class="ritual-text">Hay algo pendiente. Eso es cierto.<br>Pero no es una emergencia.<br>No tenés que resolverlo entero ahora.</div>
+      <div class="ritual-text--soft">¿Podés permitir que el problema exista durante los próximos 10 minutos sin resolverlo?</div>
+      <button class="ritual-btn" data-finish-yes>Sí.</button>
+      <button class="ritual-btn ritual-btn--ghost" data-finish-no>No del todo</button>
+    </div>
+
+    <div class="ritual-step" data-step="5">
+      <div class="ritual-text">Ya estás acá.</div>
+      <button class="ritual-btn" id="ritual-done-btn">Volver a la app</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------------- Popover registrar retorno manual ---------------- -->
+<div class="ritual-overlay" id="retorno-overlay">
+  <button class="ritual-close" id="retorno-close" aria-label="Cerrar">×</button>
+  <div class="ritual-card">
+    <div class="ritual-text" style="font-size:19px;">¿Qué te trajo de vuelta?</div>
+    <div class="ritual-options" id="retorno-options">
+      <button class="ritual-chip">cerré el celular</button>
+      <button class="ritual-chip">respiré</button>
+      <button class="ritual-chip">salí a caminar</button>
+      <button class="ritual-chip">volví después de doomscrolling</button>
+      <button class="ritual-chip">hice algo pequeño</button>
+      <button class="ritual-chip">descansé a propósito</button>
+      <button class="ritual-chip">simplemente volví</button>
+    </div>
+  </div>
 </div>
 
 <template id="tpl-reading-row">
@@ -103,7 +216,17 @@
       <div class="reading__pages"></div>
     </div>
     <div class="reading__actions">
-      <button class="btn-postpone" title="Postergar para el viernes">→ viernes</button>
+      <button class="btn-date" title="Cambiar de día">📅 cambiar día</button>
+      <div class="date-popover">
+        <div class="date-popover__title">Mover esta lectura</div>
+        <input type="date" class="date-popover__input">
+        <div class="date-popover__chips">
+          <button class="chip chip--advance" data-quick="hoy">Adelantar a hoy</button>
+          <button class="chip" data-quick="manana">Mañana</button>
+          <button class="chip" data-quick="viernes">Próx. viernes</button>
+        </div>
+        <button class="date-popover__apply">Aplicar</button>
+      </div>
       <button class="btn-tick" title="Marcar como leída" aria-label="Marcar como leída">
         <svg viewBox="0 0 24 24" class="tick-icon"><path d="M4 12.5 L9.5 18 L20 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
