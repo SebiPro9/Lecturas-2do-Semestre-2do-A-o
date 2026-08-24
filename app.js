@@ -311,20 +311,10 @@ function renderToday() {
   const pages = list.reduce((s, r) => s + r.pages, 0);
   const subEl = document.getElementById("today-sub");
 
-  if (list.length === 0) {
-    subEl.textContent = isToday ? "nada programado por ahora" : "sin lecturas programadas este día";
-  } else if (isToday) {
-    // en Hoy no lideramos con el total de páginas: se ve, pero no es lo primero que pesa
-    if (done === list.length) {
-      subEl.textContent = `listo — ${list.length} de ${list.length} hecha${list.length===1?"":"s"}`;
-    } else {
-      const restantes = list.length - done;
-      subEl.textContent = `${restantes} lectura${restantes===1?"":"s"} por hacer hoy, nada más`;
-    }
-  } else {
-    // en otros días (planificación) sí mostramos el detalle completo
-    subEl.textContent = `${list.length} lectura${list.length===1?"":"s"} · ${pages} páginas · ${done}/${list.length} leídas`;
-  }
+  subEl.textContent =
+    list.length === 0
+      ? (isToday ? "nada programado por ahora" : "sin lecturas programadas este día")
+      : `${list.length} lectura${list.length===1?"":"s"} · ${pages} páginas · ${done}/${list.length} leídas`;
 
   document.getElementById("today-jump").hidden = isToday;
 
@@ -381,6 +371,7 @@ function renderProgress() {
     const items = READINGS.filter((r) => r.subject === subject).sort((a, b) => a.seq - b.seq);
     if (items.length === 0) return;
     const node = tpl.content.firstElementChild.cloneNode(true);
+    node.dataset.subject = subject;
     node.querySelector("h3").textContent = subject;
     const sDone = items.filter((r) => r.status === "done").length;
     const sPagesTotal = items.reduce((s, r) => s + r.pages, 0);

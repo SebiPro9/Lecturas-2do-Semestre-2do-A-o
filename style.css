@@ -51,6 +51,9 @@
 body{
   margin: 0;
   background:
+    radial-gradient(ellipse at top left, rgba(224,167,54,0.16), transparent 45%),
+    radial-gradient(ellipse at 85% 15%, rgba(28,138,142,0.14), transparent 45%),
+    radial-gradient(ellipse at 20% 90%, rgba(138,90,46,0.12), transparent 50%),
     radial-gradient(ellipse at top left, rgba(255,255,255,0.35), transparent 55%),
     var(--paper);
   color: var(--ink);
@@ -70,7 +73,8 @@ body{
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  border-bottom: 3px double var(--line-strong);
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, var(--antro), var(--econ), var(--ideas), var(--europa)) 1;
   padding-bottom: 14px;
   margin-bottom: 6px;
   gap: 12px;
@@ -125,12 +129,16 @@ body{
   transition: background .15s ease, color .15s ease;
 }
 .tab:first-child{ clip-path: none; border-radius: 3px 0 0 0;}
-.tab:hover{ color: var(--ink); }
+.tab:hover{ color: var(--ink); background: var(--gold-soft); }
 .tab.is-active{
   background: var(--paper-raised);
   color: var(--ink);
-  box-shadow: 0 -2px 0 var(--brass) inset;
+  box-shadow: 0 -3px 0 var(--brass) inset;
 }
+.tab[data-view="today"].is-active{ box-shadow: 0 -3px 0 var(--coral) inset; }
+.tab[data-view="progress"].is-active{ box-shadow: 0 -3px 0 var(--econ) inset; }
+.tab[data-view="admin"].is-active{ box-shadow: 0 -3px 0 var(--ideas) inset; }
+.tab[data-view="relax"].is-active{ box-shadow: 0 -3px 0 var(--tierra-moss) inset; }
 .tab__index{
   font-family: var(--font-mono);
   font-size: 11px;
@@ -144,7 +152,7 @@ body{
   border: 1px solid var(--line);
   border-radius: 0 0 3px 3px;
   padding: 24px;
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-card), 0 0 60px -30px rgba(224,167,54,0.35), 0 0 80px -40px rgba(30,138,142,0.25);
   min-height: 340px;
 }
 .view{ display: none; }
@@ -154,7 +162,8 @@ body{
 /* ---------------- Index card header (today / history) ---------------- */
 .card-index{
   border: 1px solid var(--line-strong);
-  border-left: 5px solid var(--brass);
+  border-left: 6px solid var(--brass);
+  border-image: linear-gradient(180deg, var(--coral), var(--gold)) 1;
   background:
     repeating-linear-gradient(var(--paper-raised) 0 27px, rgba(169,156,124,0.16) 27px 28px);
   padding: 14px 18px;
@@ -234,8 +243,16 @@ body{
   transition: box-shadow .15s ease;
 }
 .reading:hover{ box-shadow: 0 2px 10px -4px rgba(35,40,42,0.25); }
+.reading[data-subject="Antropología"]{ background: linear-gradient(90deg, rgba(176,83,46,0.07), var(--paper-raised) 14%); }
+.reading[data-subject="Historia económica internacional"]{ background: linear-gradient(90deg, rgba(30,138,142,0.07), var(--paper-raised) 14%); }
+.reading[data-subject="Historia de las ideas políticas"]{ background: linear-gradient(90deg, rgba(108,87,184,0.07), var(--paper-raised) 14%); }
+.reading[data-subject="Europa en el siglo XX"]{ background: linear-gradient(90deg, rgba(138,154,46,0.07), var(--paper-raised) 14%); }
 
-.reading__swatch{ width: 6px; flex-shrink: 0; }
+.reading__swatch{ width: 9px; flex-shrink: 0; }
+.reading[data-subject="Antropología"]{ background: linear-gradient(90deg, rgba(176,83,46,0.10), var(--paper-raised) 18%); }
+.reading[data-subject="Historia económica internacional"]{ background: linear-gradient(90deg, rgba(30,138,142,0.10), var(--paper-raised) 18%); }
+.reading[data-subject="Historia de las ideas políticas"]{ background: linear-gradient(90deg, rgba(108,87,184,0.10), var(--paper-raised) 18%); }
+.reading[data-subject="Europa en el siglo XX"]{ background: linear-gradient(90deg, rgba(138,154,46,0.10), var(--paper-raised) 18%); }
 .reading[data-subject="Antropología"] .reading__swatch{ background: var(--antro); }
 .reading[data-subject="Historia económica internacional"] .reading__swatch{ background: var(--econ); }
 .reading[data-subject="Historia de las ideas políticas"] .reading__swatch{ background: var(--ideas); }
@@ -300,7 +317,11 @@ body{
   flex-shrink: 0;
   transition: all .15s ease;
 }
-.btn-tick:hover{ border-color: var(--stamp-green); }
+.btn-tick:hover{
+  border-color: var(--stamp-green);
+  box-shadow: 0 0 0 4px rgba(46,107,76,0.15);
+  transform: scale(1.06);
+}
 .tick-icon{ width: 16px; height: 16px; }
 
 .reading.is-done .btn-tick{
@@ -355,11 +376,15 @@ body{
 }
 .totals .stat{
   border: 1px solid var(--line);
+  border-top: 3px solid var(--brass);
   background: var(--paper-dark);
   border-radius: 2px;
   padding: 12px 14px;
   text-align: center;
 }
+.totals .stat:nth-child(1){ border-top-color: var(--coral); }
+.totals .stat:nth-child(2){ border-top-color: var(--econ); }
+.totals .stat:nth-child(3){ border-top-color: var(--gold); }
 .totals .stat__value{
   font-family: var(--font-display);
   font-weight: 600;
@@ -406,7 +431,12 @@ body{
 .subject-block__bar-fill{
   height: 100%;
   background: var(--brass);
+  transition: width .4s ease;
 }
+.subject-block[data-subject="Antropología"] .subject-block__bar-fill{ background: linear-gradient(90deg, var(--antro), var(--gold)); }
+.subject-block[data-subject="Historia económica internacional"] .subject-block__bar-fill{ background: linear-gradient(90deg, var(--econ), var(--sky)); }
+.subject-block[data-subject="Historia de las ideas políticas"] .subject-block__bar-fill{ background: linear-gradient(90deg, var(--ideas), var(--coral)); }
+.subject-block[data-subject="Europa en el siglo XX"] .subject-block__bar-fill{ background: linear-gradient(90deg, var(--europa), var(--gold)); }
 .subject-block__grid{
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
@@ -424,6 +454,10 @@ body{
   background: var(--stamp-green);
   border-color: var(--stamp-green);
 }
+.subject-block[data-subject="Antropología"] .tile:not(.is-done){ border-color: var(--antro); opacity: .55; }
+.subject-block[data-subject="Historia económica internacional"] .tile:not(.is-done){ border-color: var(--econ); opacity: .55; }
+.subject-block[data-subject="Historia de las ideas políticas"] .tile:not(.is-done){ border-color: var(--ideas); opacity: .55; }
+.subject-block[data-subject="Europa en el siglo XX"] .tile:not(.is-done){ border-color: var(--europa); opacity: .55; }
 .tile:hover::after{
   content: attr(data-tip);
   position: absolute;
