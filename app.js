@@ -1,5 +1,5 @@
 // ============================================================
-// Mis lecturas — lógica de la app
+// Mis lecturas + ejercicio — lógica de la app
 // ============================================================
 
 const SUBJECT_ORDER = [
@@ -10,9 +10,6 @@ const SUBJECT_ORDER = [
 ];
 
 const DAY_NAMES = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
-
-const PROJECT_START = "2026-08-17";
-const PROJECT_END_HINT = "2026-09-21"; // sólo se usa como valor por defecto del selector
 
 // ---------------- Supabase init ----------------
 const { createClient } = supabase;
@@ -45,7 +42,6 @@ function formatLong(iso) {
 }
 function nextFridayAfter(iso) {
   const d = dateFromISO(iso);
-  // avanzar al menos un día, hasta caer en viernes (5)
   do {
     d.setDate(d.getDate() + 1);
   } while (d.getDay() !== 5);
@@ -57,7 +53,7 @@ function addDays(iso, n) {
   return isoFromDate(d);
 }
 
-// ---------------- Carga de datos ----------------
+// ---------------- Carga de datos: lecturas ----------------
 async function loadReadings() {
   const { data, error } = await sb
     .from("readings")
@@ -80,16 +76,16 @@ function setSyncDot(ok) {
   dot.title = ok ? "Sincronizado" : "Sin conexión con Supabase";
 }
 
-// ---------------- Realtime: mantiene todos los dispositivos al día ----------------
 function subscribeRealtime() {
   sb.channel("readings-changes")
-    .on("postgres_changes", { event: "*", schema: "public", table: "readings" }, () => {
-      loadReadings();
-    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "readings" }, () => loadReadings())
+    .subscribe();
+  sb.channel("workout-changes")
+    .on("postgres_changes", { event: "*", schema: "public", table: "workout_log" }, () => loadWorkouts())
     .subscribe();
 }
 
-// ---------------- Acciones ----------------
+// ---------------- Acciones sobre lecturas ----------------
 async function toggleDone(reading) {
   const newStatus = reading.status === "done" ? "pending" : "done";
   const patch = {
@@ -98,9 +94,7 @@ async function toggleDone(reading) {
   };
   Object.assign(reading, patch);
   renderCurrentView();
-  if (newStatus === "done") {
-    showToast("¡Leída! 🌿", "done");
-  }
+  if (newStatus === "done") showToast("¡Leída! 🎉", "done");
   const { error } = await sb.from("readings").update(patch).eq("id", reading.id);
   if (error) { console.error(error); loadReadings(); }
 }
@@ -113,32 +107,25 @@ async function moveReading(reading, newDate, originEl) {
   renderCurrentView();
 
   if (isAdvance) {
-    showToast("¡Vas adelantado! 🌱", "advance");
-    if (originEl) burstConfetti(originEl, ["#E0A736", "#2E6B4C", "#8A9A2E"]);
+    showToast("¡Vas adelantado! 🌟", "advance");
+    if (originEl) burstConfetti(originEl, ["#FFC93C", "#FF6B6B", "#22C55E"]);
   } else if (isPostpone) {
     showToast("Reprogramado. Sin drama.", "postpone");
   } else {
     showToast("Movido.", "postpone");
   }
 
-  const { error } = await sb
-    .from("readings")
-    .update({ scheduled_date: newDate })
-    .eq("id", reading.id);
+  const { error } = await sb.from("readings").update({ scheduled_date: newDate }).eq("id", reading.id);
   if (error) { console.error(error); loadReadings(); }
 }
 
 async function updateReadingDate(reading, newDate) {
-  // usado desde Administrar: cambio directo, sin popover ni celebracion grande
   if (!newDate || newDate === reading.scheduled_date) return;
   const isAdvance = newDate < reading.original_date;
   reading.scheduled_date = newDate;
   renderCurrentView();
-  if (isAdvance) showToast("¡Vas adelantado! 🌱", "advance");
-  const { error } = await sb
-    .from("readings")
-    .update({ scheduled_date: newDate })
-    .eq("id", reading.id);
+  if (isAdvance) showToast("¡Vas adelantado! 🌟", "advance");
+  const { error } = await sb.from("readings").update({ scheduled_date: newDate }).eq("id", reading.id);
   if (error) { console.error(error); loadReadings(); }
 }
 
@@ -150,7 +137,6 @@ async function swapDates(dateA, dateB) {
     alert("No hay lecturas programadas en ninguna de las dos fechas.");
     return;
   }
-  // actualización optimista local
   READINGS.forEach((r) => {
     if (r.scheduled_date === dateA) r.scheduled_date = dateB;
     else if (r.scheduled_date === dateB) r.scheduled_date = dateA;
@@ -170,12 +156,12 @@ function burstConfetti(originEl, colors) {
   wrap.className = "confetti-burst";
   wrap.style.left = cx + "px";
   wrap.style.top = cy + "px";
-  const n = 16;
+  const n = 18;
   for (let i = 0; i < n; i++) {
     const p = document.createElement("div");
     p.className = "confetti-piece";
     const angle = (Math.PI * 2 * i) / n + Math.random() * 0.4;
-    const dist = 40 + Math.random() * 50;
+    const dist = 45 + Math.random() * 55;
     p.style.setProperty("--dx", Math.cos(angle) * dist + "px");
     p.style.setProperty("--dy", Math.sin(angle) * dist + "px");
     p.style.setProperty("--rot", Math.round(Math.random() * 360) + "deg");
@@ -183,7 +169,7 @@ function burstConfetti(originEl, colors) {
     wrap.appendChild(p);
   }
   document.body.appendChild(wrap);
-  setTimeout(() => wrap.remove(), 950);
+  setTimeout(() => wrap.remove(), 1000);
 }
 
 let toastTimer = null;
@@ -201,14 +187,14 @@ function showToast(text, kind) {
   toastTimer = setTimeout(() => el.classList.remove("is-visible"), 2200);
 }
 
-// ---------------- Popover de fecha ----------------
+// ---------------- Popover de fecha (en flujo normal, sin recorte) ----------------
 function closeAllDatePopovers(except) {
   document.querySelectorAll(".date-popover.is-open").forEach((p) => {
     if (p !== except) p.classList.remove("is-open");
   });
 }
 document.addEventListener("click", (e) => {
-  if (!e.target.closest(".reading__actions")) closeAllDatePopovers(null);
+  if (!e.target.closest(".reading")) closeAllDatePopovers(null);
 });
 
 function wireDatePopover(node, reading) {
@@ -259,10 +245,12 @@ function buildReadingRow(reading) {
   node.querySelector(".reading__pages").textContent = pagesTxt;
 
   node.querySelector(".btn-tick").addEventListener("click", (e) => {
-    if (reading.status !== "done") burstConfetti(e.currentTarget, [
-      getComputedStyle(document.documentElement).getPropertyValue("--" + subjectColorVar(reading.subject)).trim() || "#2E6B4C",
-      "#E0A736", "#8FB2AE"
-    ]);
+    if (reading.status !== "done") {
+      burstConfetti(e.currentTarget, [
+        getComputedStyle(document.documentElement).getPropertyValue("--" + subjectColorVar(reading.subject)).trim() || "#22C55E",
+        "#FFC93C", "#4C9CFF",
+      ]);
+    }
     toggleDone(reading);
   });
   wireDatePopover(node, reading);
@@ -286,7 +274,6 @@ function renderList(container, readings, emptyMsg) {
     container.appendChild(p);
     return;
   }
-  // agrupar por materia, en el orden fijo del programa, dentro del mismo día
   const sorted = [...readings].sort((a, b) => {
     const ai = SUBJECT_ORDER.indexOf(a.subject);
     const bi = SUBJECT_ORDER.indexOf(b.subject);
@@ -318,15 +305,10 @@ function renderToday() {
 
   document.getElementById("today-jump").hidden = isToday;
 
-  renderList(
-    document.getElementById("today-list"),
-    list,
-    "No hay lecturas programadas para este día."
-  );
+  renderList(document.getElementById("today-list"), list, "No hay lecturas programadas para este día.");
 }
 
 function initTodayNav() {
-  // flecha izquierda: días pasados — flecha derecha: días futuros
   document.getElementById("today-next").addEventListener("click", () => {
     viewedDate = addDays(viewedDate, -1);
     renderToday();
@@ -341,7 +323,7 @@ function initTodayNav() {
   });
 }
 
-// ---------------- Vista: PROGRESO GLOBAL ----------------
+// ---------------- Vista: PROGRESO ----------------
 function renderProgress() {
   const totalCount = READINGS.length;
   const doneCount = READINGS.filter((r) => r.status === "done").length;
@@ -351,12 +333,11 @@ function renderProgress() {
 
   const totalsEl = document.getElementById("progress-totals");
   totalsEl.innerHTML = "";
-  const stats = [
+  [
     { value: `${pct}%`, label: "avance (páginas)" },
     { value: `${doneCount}/${totalCount}`, label: "lecturas leídas" },
     { value: `${donePages}/${totalPages}`, label: "páginas leídas" },
-  ];
-  stats.forEach((s) => {
+  ].forEach((s) => {
     const div = document.createElement("div");
     div.className = "stat";
     div.innerHTML = `<div class="stat__value">${s.value}</div><div class="stat__label">${s.label}</div>`;
@@ -378,8 +359,7 @@ function renderProgress() {
     const sPagesDone = items.filter((r) => r.status === "done").reduce((s, r) => s + r.pages, 0);
     node.querySelector(".stat-count").textContent = `${sDone}/${items.length} lecturas`;
     node.querySelector(".stat-pages").textContent = `${sPagesDone}/${sPagesTotal} pág.`;
-    const fillPct = sPagesTotal ? (sPagesDone / sPagesTotal) * 100 : 0;
-    node.querySelector(".subject-block__bar-fill").style.width = fillPct + "%";
+    node.querySelector(".subject-block__bar-fill").style.width = (sPagesTotal ? (sPagesDone / sPagesTotal) * 100 : 0) + "%";
 
     const grid = node.querySelector(".subject-block__grid");
     items.forEach((r) => {
@@ -389,7 +369,6 @@ function renderProgress() {
       tile.addEventListener("click", () => toggleDone(r));
       grid.appendChild(tile);
     });
-
     subjectsEl.appendChild(node);
   });
 }
@@ -473,203 +452,186 @@ function initAdminControls() {
 }
 
 // ============================================================
-// CENTRO DE RELAJACIÓN — lógica de TIERRA
-// Guarda todo en la tabla "checkins" (Supabase), separado de
-// las lecturas: esto no administra el atraso académico, sólo
-// la relación con él.
+// EJERCICIO — rutina de fuerza en casa (Día A / Día B)
+// Entrenador: recomposición corporal, sin gimnasio, 12-15 min/sesión,
+// mancuernas de 5kg y 10kg. Lunes a viernes, alternando A/B. Fines de
+// semana, descanso. Vigente hasta el 20/12/2026.
 // ============================================================
 
-let CHECKINS = [];
-let favoritePhrases = new Set();
-let selectedEstado = null;
+const WORKOUT_ANCHOR = "2026-08-24"; // lunes = Día A
+const WORKOUT_END = "2026-12-20";
 
-const NO_EMERGENCIA_PHRASES = [
-  "Estoy atrasado. No estoy en peligro.",
-  "No necesito recuperar todo ahora.",
-  "No tengo que sentirme motivado para empezar.",
-  "Puedo hacer poco.",
-  "Puedo descansar sin escapar.",
-  "Puedo estar incómodo sin huir.",
-  "El celular me ofrece alivio, no solución.",
-  "El hecho de que algo sea importante no significa que deba resolverlo inmediatamente.",
-  "Mañana no necesita ser perfecto. Necesita ser habitable.",
+const EXERCISES_A = [
+  { key: "goblet-squat", name: "Sentadilla goblet", spec: "3×12 · 10kg",
+    desc: "<b>Cómo hacerlo:</b> sostené la mancuerna en forma vertical contra el pecho con ambas manos, pies al ancho de los hombros. Bajá flexionando cadera y rodillas como si te sentaras en una silla, pecho arriba, peso en los talones, hasta donde te sea cómodo. Subí empujando el piso. <b>Para qué sirve:</b> es el ejercicio más completo para pierna entera (cuádriceps, glúteos, isquiotibiales) en poco tiempo, y exige que mantengas el torso erguido, lo que ayuda a la postura." },
+  { key: "press-militar", name: "Press militar de pie", spec: "3×12 · 5kg",
+    desc: "<b>Cómo hacerlo:</b> de pie, una mancuerna en cada mano a la altura de los hombros, palmas hacia adelante. Empujá ambas hacia arriba hasta extender los brazos, sin arquear la espalda baja, y bajá con control. <b>Para qué sirve:</b> desarrolla hombros y tríceps, y al hacerse de pie (no sentado) también exige estabilidad del core." },
+  { key: "peso-muerto-rumano", name: "Peso muerto rumano", spec: "3×12 · 10kg",
+    desc: "<b>Cómo hacerlo:</b> de pie, una mancuerna en cada mano por delante de los muslos. Empujá la cadera hacia atrás con las rodillas apenas flexionadas y la espalda recta, bajando las mancuernas cerca de las piernas hasta sentir el estiramiento en los isquiotibiales. Volvé llevando la cadera adelante. <b>Para qué sirve:</b> fortalece toda la cadena posterior (isquiotibiales, glúteos, lumbar), clave para la postura y para prevenir dolores de espalda." },
+  { key: "plancha-toque", name: "Plancha con toque de hombro", spec: "3×30-40s",
+    desc: "<b>Cómo hacerlo:</b> apoyate en manos y puntas de pie como al inicio de una flexión, cuerpo en línea recta. Sin mover la cadera, tocá el hombro contrario con una mano y volvé a apoyar, alternando lados. <b>Para qué sirve:</b> trabaja el core en un patrón \"anti-rotación\", más exigente que una plancha estática, y mejora la estabilidad de tronco." },
 ];
 
-async function loadCheckins() {
-  const since = addDays(todayISO(), -30);
-  const { data, error } = await sb
-    .from("checkins")
-    .select("*")
-    .gte("created_at", since + "T00:00:00")
-    .order("created_at", { ascending: false });
+const EXERCISES_B = [
+  { key: "zancada", name: "Zancada estática con mancuernas", spec: "3×10-12 c/pierna · 10kg",
+    desc: "<b>Cómo hacerlo:</b> una mancuerna en cada mano a los costados, dá un paso largo hacia adelante y bajá flexionando ambas rodillas a 90°, sin que la rodilla de adelante pase la punta del pie. Volvé empujando con la pierna de adelante. <b>Para qué sirve:</b> trabaja cuádriceps y glúteos de a una pierna por vez, lo que ayuda a corregir diferencias de fuerza entre ambas piernas." },
+  { key: "remo-una-mano", name: "Remo a una mano", spec: "3×12 c/lado · 10kg",
+    desc: "<b>Cómo hacerlo:</b> apoyá una rodilla y una mano sobre una silla, espalda paralela al piso, mancuerna en la otra mano colgando. Tirá la mancuerna hacia la cadera llevando el codo atrás y apretando el omóplato, bajá con control. <b>Para qué sirve:</b> fortalece la espalda media y el bíceps, y ayuda a contrarrestar la postura encorvada de pasar horas sentado." },
+  { key: "press-pecho-piso", name: "Press de pecho en el piso", spec: "3×12 · 10kg",
+    desc: "<b>Cómo hacerlo:</b> acostado boca arriba, rodillas flexionadas, una mancuerna en cada mano a la altura del pecho. Empujá hacia arriba hasta casi extender los brazos y bajá con control hasta que los codos casi toquen el piso. <b>Para qué sirve:</b> trabaja pecho, hombros y tríceps; hacerlo en el piso (no en un banco) protege el hombro al limitar el recorrido." },
+  { key: "puente-gluteo", name: "Puente de glúteo", spec: "3×15",
+    desc: "<b>Cómo hacerlo:</b> acostado boca arriba, rodillas flexionadas y pies apoyados, empujá la cadera hacia arriba apretando los glúteos hasta formar una línea recta de rodillas a hombros, bajá con control. <b>Para qué sirve:</b> activa directamente el glúteo, un músculo que se \"apaga\" con muchas horas sentado, y cuida la zona lumbar." },
+];
+
+const VARIATIONS_A = [
+  "Sentadilla goblet → sentadilla sumo, o zancada búlgara con el pie de atrás apoyado en una silla.",
+  "Press militar de pie → press Arnold (rotando la muñeca al subir), o press militar sentado.",
+  "Peso muerto rumano → peso muerto a una pierna (unilateral), sosteniendo la mancuerna del lado contrario.",
+  "Plancha con toque de hombro → plancha lateral, o mountain climbers.",
+];
+const VARIATIONS_B = [
+  "Zancada estática → zancada caminando por la habitación, o step-up sobre un escalón o silla firme.",
+  "Remo a una mano → remo renegado (en posición de plancha), o remo inclinado con las dos mancuernas.",
+  "Press de pecho en el piso → flexiones de brazos clásicas, o pullover con una mancuerna.",
+  "Puente de glúteo → hip thrust con la mancuerna apoyada sobre la cadera, o superman.",
+];
+
+function getWorkoutInfo(iso) {
+  const d = dateFromISO(iso);
+  const dow = d.getDay();
+  if (dow === 0 || dow === 6) return { type: "rest" };
+  if (iso < WORKOUT_ANCHOR || iso > WORKOUT_END) return { type: "out" };
+  let count = 0;
+  const cur = dateFromISO(WORKOUT_ANCHOR);
+  const target = dateFromISO(iso);
+  while (cur <= target) {
+    const cdow = cur.getDay();
+    if (cdow !== 0 && cdow !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  const idx = count - 1;
+  return { type: idx % 2 === 0 ? "A" : "B" };
+}
+
+let WORKOUTS = [];
+async function loadWorkouts() {
+  const { data, error } = await sb.from("workout_log").select("*");
   if (error) { console.error(error); return; }
-  CHECKINS = data || [];
-  const favRow = CHECKINS.find((c) => c.kind === "favoritos");
-  favoritePhrases = new Set(favRow?.payload?.phrases || []);
-  if (currentView === "relax") renderRelax();
+  WORKOUTS = data || [];
+  if (currentView === "exercise") renderExercise();
 }
 
-async function logCheckin(kind, payload) {
-  const row = { kind, payload: payload || {} };
-  CHECKINS.unshift({ ...row, created_at: new Date().toISOString() });
-  if (currentView === "relax") renderRelax();
-  const { error } = await sb.from("checkins").insert(row);
-  if (error) console.error(error);
+function getWorkoutRow(iso, key) {
+  return WORKOUTS.find((w) => w.date === iso && w.exercise_key === key);
 }
 
-function startOfWeekISO() {
-  const d = dateFromISO(todayISO());
-  const day = d.getDay(); // 0 domingo
-  const diffToMonday = day === 0 ? 6 : day - 1;
-  d.setDate(d.getDate() - diffToMonday);
-  return isoFromDate(d);
+async function toggleExerciseDone(iso, key, originEl) {
+  const existing = getWorkoutRow(iso, key);
+  const newStatus = existing && existing.status === "done" ? "pending" : "done";
+  if (existing) {
+    existing.status = newStatus;
+  } else {
+    WORKOUTS.push({ date: iso, exercise_key: key, status: newStatus });
+  }
+  renderExercise();
+  if (newStatus === "done") {
+    showToast("¡Listo! 💪", "done");
+    if (originEl) burstConfetti(originEl, ["#FF6B6B", "#FFC93C", "#12B3A6"]);
+  }
+  if (existing && existing.id) {
+    await sb.from("workout_log").update({ status: newStatus }).eq("id", existing.id);
+  } else {
+    const { data, error } = await sb
+      .from("workout_log")
+      .insert({ date: iso, exercise_key: key, status: newStatus })
+      .select();
+    if (!error && data && data[0]) {
+      const row = getWorkoutRow(iso, key);
+      if (row) row.id = data[0].id;
+    }
+  }
 }
 
-function renderRelax() {
-  const todayIso = todayISO();
-  const weekStart = startOfWeekISO();
+function renderExercise() {
+  const iso = todayISO();
+  const info = getWorkoutInfo(iso);
+  const dayLabel = document.getElementById("ex-day-label");
+  const daySub = document.getElementById("ex-day-sub");
+  const restMsg = document.getElementById("ex-rest-msg");
+  const listEl = document.getElementById("ex-exercise-list");
+  const variationsEl = document.getElementById("ex-variations");
 
-  const retornosHoy = CHECKINS.filter(
-    (c) => c.kind === "retorno" && c.created_at.slice(0, 10) === todayIso
-  ).length;
-  const retornosSemana = CHECKINS.filter(
-    (c) => c.kind === "retorno" && c.created_at.slice(0, 10) >= weekStart
-  ).length;
-  document.getElementById("retornos-hoy").textContent = retornosHoy;
-  document.getElementById("retornos-semana").textContent = retornosSemana;
+  if (info.type === "rest" || info.type === "out") {
+    dayLabel.textContent = formatLong(iso);
+    daySub.textContent = info.type === "out" ? "fuera del período de rutina (17/08 – 20/12)" : "día de descanso";
+    restMsg.hidden = false;
+    listEl.innerHTML = "";
+    variationsEl.innerHTML = "";
+    renderExerciseWeek();
+    return;
+  }
 
-  // tira de la semana: hoja si hubo retorno ese día, circulo vacio si no
-  const weekEl = document.getElementById("tierra-week");
+  restMsg.hidden = true;
+  const routine = info.type === "A" ? EXERCISES_A : EXERCISES_B;
+  dayLabel.textContent = `Día ${info.type}`;
+  daySub.textContent = `${formatLong(iso)} · ~12-15 min · descanso 45s entre series`;
+
+  listEl.innerHTML = "";
+  const tpl = document.getElementById("tpl-ex-card");
+  routine.forEach((ex) => {
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    const row = getWorkoutRow(iso, ex.key);
+    node.classList.toggle("is-done", !!(row && row.status === "done"));
+    node.querySelector(".ex-card__name").textContent = ex.name;
+    node.querySelector(".ex-card__spec").textContent = ex.spec;
+    node.querySelector(".ex-card__desc").innerHTML = ex.desc;
+    node.querySelector(".ex-card__tick").addEventListener("click", (e) => toggleExerciseDone(iso, ex.key, e.currentTarget));
+    node.querySelector(".ex-card__plus").addEventListener("click", () => {
+      node.querySelector(".ex-card__desc").classList.toggle("is-open");
+    });
+    listEl.appendChild(node);
+  });
+
+  variationsEl.innerHTML = "";
+  (info.type === "A" ? VARIATIONS_A : VARIATIONS_B).forEach((v) => {
+    const li = document.createElement("li");
+    li.textContent = v;
+    variationsEl.appendChild(li);
+  });
+
+  renderExerciseWeek();
+}
+
+function renderExerciseWeek() {
+  const weekEl = document.getElementById("ex-week");
   weekEl.innerHTML = "";
-  for (let i = 6; i >= 0; i--) {
-    const iso = addDays(todayIso, -i);
-    const hasReturn = CHECKINS.some((c) => c.kind === "retorno" && c.created_at.slice(0, 10) === iso);
+  const todayIso = todayISO();
+  const dow = dateFromISO(todayIso).getDay();
+  const monday = addDays(todayIso, dow === 0 ? -6 : -(dow - 1));
+  for (let i = 0; i < 7; i++) {
+    const iso = addDays(monday, i);
+    const info = getWorkoutInfo(iso);
     const wrap = document.createElement("div");
-    wrap.className = "tierra-week__day";
+    wrap.className = "ex-week__day";
+    const dot = document.createElement("div");
+    dot.className = "ex-week__dot";
+    if (info.type === "rest" || info.type === "out") {
+      dot.classList.add("is-rest");
+    } else {
+      const routine = info.type === "A" ? EXERCISES_A : EXERCISES_B;
+      const anyDone = routine.some((ex) => {
+        const row = getWorkoutRow(iso, ex.key);
+        return row && row.status === "done";
+      });
+      if (anyDone) dot.classList.add("is-done");
+    }
     const label = document.createElement("div");
-    label.className = "tierra-week__label";
+    label.className = "ex-week__label";
     label.textContent = DAY_NAMES[dateFromISO(iso).getDay()].slice(0, 2);
-    wrap.appendChild(iconLeafOrCircle(hasReturn));
+    wrap.appendChild(dot);
     wrap.appendChild(label);
     weekEl.appendChild(wrap);
   }
-
-  // frases "no es una emergencia"
-  const phrasesEl = document.getElementById("tierra-phrases");
-  phrasesEl.innerHTML = "";
-  NO_EMERGENCIA_PHRASES.forEach((text) => {
-    const row = document.createElement("div");
-    row.className = "tierra-phrase";
-    const span = document.createElement("span");
-    span.textContent = text;
-    const star = document.createElement("button");
-    star.className = "tierra-phrase__star" + (favoritePhrases.has(text) ? " is-fav" : "");
-    star.textContent = favoritePhrases.has(text) ? "★" : "☆";
-    star.addEventListener("click", () => toggleFavoritePhrase(text));
-    row.appendChild(span);
-    row.appendChild(star);
-    phrasesEl.appendChild(row);
-  });
-
-  document.querySelectorAll(".tierra-state-btn").forEach((b) => {
-    b.classList.toggle("is-selected", b.dataset.estado === selectedEstado);
-  });
-}
-
-function iconLeafOrCircle(filled) {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("class", "leaf-icon");
-  if (filled) {
-    svg.innerHTML = `<path d="M4 20c8-1 14-7 15-15C11 6 5 12 4 20Z" fill="#6B7F5E"/>`;
-  } else {
-    svg.innerHTML = `<circle cx="12" cy="12" r="7" fill="none" stroke="#C9C3B2" stroke-width="1.5"/>`;
-  }
-  return svg;
-}
-
-function toggleFavoritePhrase(text) {
-  if (favoritePhrases.has(text)) favoritePhrases.delete(text);
-  else favoritePhrases.add(text);
-  renderRelax();
-  logCheckin("favoritos", { phrases: Array.from(favoritePhrases) });
-}
-
-function initRelaxControls() {
-  document.querySelectorAll(".tierra-state-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      selectedEstado = btn.dataset.estado;
-      renderRelax();
-      logCheckin("estado", { estado: selectedEstado });
-    });
-  });
-
-  document.getElementById("btn-volver-tierra").addEventListener("click", openRitual);
-  document.getElementById("btn-registrar-retorno").addEventListener("click", openRetornoManual);
-  document.getElementById("retorno-close").addEventListener("click", closeRetornoManual);
-  document.querySelectorAll("#retorno-options .ritual-chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      logCheckin("retorno", { tipo: chip.textContent });
-      showToast("Volviste. Eso ya es todo. 🌿", "advance");
-      closeRetornoManual();
-    });
-  });
-
-  // --- ritual VOLVER A TIERRA ---
-  const overlay = document.getElementById("ritual-overlay");
-  document.getElementById("ritual-close").addEventListener("click", closeRitual);
-  overlay.querySelectorAll("[data-next]").forEach((btn) => {
-    btn.addEventListener("click", () => ritualGoToStep(currentRitualStep() + 1));
-  });
-  overlay.querySelectorAll("#ritual-body-options .ritual-chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      overlay.querySelectorAll("#ritual-body-options .ritual-chip").forEach((c) => c.classList.remove("is-selected"));
-      chip.classList.add("is-selected");
-    });
-  });
-  document.querySelector("[data-finish-yes]").addEventListener("click", () => {
-    finishRitual(true);
-  });
-  document.querySelector("[data-finish-no]").addEventListener("click", () => {
-    finishRitual(false);
-  });
-  document.getElementById("ritual-done-btn").addEventListener("click", closeRitual);
-}
-
-function currentRitualStep() {
-  const active = document.querySelector(".ritual-step.is-active");
-  return active ? Number(active.dataset.step) : 1;
-}
-function ritualGoToStep(n) {
-  document.querySelectorAll(".ritual-step").forEach((s) => {
-    s.classList.toggle("is-active", Number(s.dataset.step) === n);
-  });
-}
-function openRitual() {
-  ritualGoToStep(1);
-  document.getElementById("ritual-nombrar").value = "";
-  document.getElementById("ritual-overlay").classList.add("is-open");
-}
-function closeRitual() {
-  document.getElementById("ritual-overlay").classList.remove("is-open");
-}
-function finishRitual(permitted) {
-  const nombrar = document.getElementById("ritual-nombrar").value.trim();
-  if (nombrar) logCheckin("nombrar", { texto: nombrar, permitido: permitted });
-  logCheckin("retorno", { tipo: "ritual volver a tierra" });
-  ritualGoToStep(5);
-  if (!permitted) {
-    // igual mostramos el cierre calido, sin marcar esto como un "no" fallido
-    document.querySelector('[data-step="5"] .ritual-text').textContent = "Está bien. No hace falta conseguir calma. Ya volviste.";
-  } else {
-    document.querySelector('[data-step="5"] .ritual-text').textContent = "Ya estás acá.";
-  }
-}
-function openRetornoManual() {
-  document.getElementById("retorno-overlay").classList.add("is-open");
-}
-function closeRetornoManual() {
-  document.getElementById("retorno-overlay").classList.remove("is-open");
 }
 
 // ---------------- Router de vistas ----------------
@@ -677,25 +639,19 @@ function renderCurrentView() {
   if (currentView === "today") renderToday();
   else if (currentView === "progress") renderProgress();
   else if (currentView === "admin") renderAdmin();
-  else if (currentView === "relax") renderRelax();
+  else if (currentView === "exercise") renderExercise();
 }
 
 function setView(view) {
   currentView = view;
-  document.querySelectorAll(".tab").forEach((t) =>
-    t.classList.toggle("is-active", t.dataset.view === view)
-  );
-  document.querySelectorAll(".view").forEach((v) =>
-    v.classList.toggle("is-active", v.id === `view-${view}`)
-  );
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t.dataset.view === view));
+  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("is-active", v.id === `view-${view}`));
   renderCurrentView();
 }
 
 // ---------------- Reloj del encabezado ----------------
 function tickClock() {
-  const el = document.getElementById("masthead-clock");
-  const iso = todayISO();
-  el.textContent = formatLong(iso);
+  document.getElementById("masthead-clock").textContent = formatLong(todayISO());
 }
 
 // ---------------- Init ----------------
@@ -705,9 +661,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   initTodayNav();
   initAdminControls();
-  initRelaxControls();
   tickClock();
   loadReadings();
-  loadCheckins();
+  loadWorkouts();
   subscribeRealtime();
 });
