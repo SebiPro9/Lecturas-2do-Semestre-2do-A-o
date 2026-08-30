@@ -25,7 +25,6 @@
   <nav class="tabs" id="tabs">
     <button class="tab is-active" data-view="today">Hoy</button>
     <button class="tab" data-view="progress">Progreso</button>
-    <button class="tab" data-view="admin">Administrar</button>
     <button class="tab" data-view="exercise">Ejercicio</button>
   </nav>
 
@@ -53,29 +52,6 @@
     <section class="view" id="view-progress">
       <div class="totals" id="progress-totals"></div>
       <div class="subjects" id="progress-subjects"></div>
-    </section>
-
-    <!-- ---------------- VISTA: ADMINISTRAR ---------------- -->
-    <section class="view" id="view-admin">
-      <div class="admin-swap">
-        <h3>Intercambiar lecturas entre dos días</h3>
-        <div class="admin-swap__row">
-          <input type="date" id="swap-date-a" aria-label="Primer día">
-          <span class="swap-icon">⇄</span>
-          <input type="date" id="swap-date-b" aria-label="Segundo día">
-          <button class="btn-brass" id="swap-btn">Intercambiar</button>
-        </div>
-        <p class="admin-swap__hint">Todo lo que esté programado en el primer día pasa al segundo, y viceversa.</p>
-      </div>
-
-      <div class="admin-filters">
-        <input type="text" id="admin-search" placeholder="Buscar por título…">
-        <select id="admin-subject-filter">
-          <option value="">Todas las materias</option>
-        </select>
-      </div>
-
-      <div class="admin-table" id="admin-table"></div>
     </section>
 
     <!-- ---------------- VISTA: EJERCICIO ---------------- -->
@@ -137,22 +113,6 @@
       <button class="date-popover__apply">Aplicar</button>
     </div>
     <div class="reading__stamp">LEÍDO</div>
-  </div>
-</template>
-
-<template id="tpl-admin-row">
-  <div class="admin-row">
-    <input type="date" class="admin-row__date">
-    <div class="admin-row__swatch"></div>
-    <div class="admin-row__info">
-      <div class="admin-row__meta">
-        <span class="admin-row__subject"></span>
-        <span class="admin-row__nro"></span>
-      </div>
-      <div class="admin-row__title"></div>
-    </div>
-    <div class="admin-row__pages"></div>
-    <button class="admin-row__status" title="Marcar leída / pendiente"></button>
   </div>
 </template>
 

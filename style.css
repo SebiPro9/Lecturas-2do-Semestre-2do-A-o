@@ -140,7 +140,6 @@ body{
 }
 .tab[data-view="today"].is-active{ background: linear-gradient(135deg, var(--coral), var(--pink)); }
 .tab[data-view="progress"].is-active{ background: linear-gradient(135deg, var(--teal), var(--blue)); }
-.tab[data-view="admin"].is-active{ background: linear-gradient(135deg, var(--purple), var(--purple-d)); }
 .tab[data-view="exercise"].is-active{ background: linear-gradient(135deg, var(--yellow), var(--coral)); }
 .tab__index{ display: none; }
 
@@ -149,8 +148,9 @@ body{
   background: var(--surface);
   border-radius: var(--radius-lg);
   padding: 22px;
+  padding-bottom: 120px;
   box-shadow: var(--shadow-card);
-  min-height: 340px;
+  min-height: min(720px, 78vh);
 }
 .view{ display: none; }
 .view.is-active{ display: block; animation: fade-in .3s ease; }
@@ -487,8 +487,9 @@ body{
 .subject-block[data-subject="Europa en el siglo XX"] .subject-block__bar-fill{ background: linear-gradient(90deg, var(--europa), var(--coral)); }
 
 .subject-block__grid{ display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 6px; }
-.tile{ aspect-ratio: 1; border-radius: 8px; border: none; background: var(--surface-2); cursor: pointer; position: relative; }
-.tile.is-done{ background: linear-gradient(135deg, var(--green), var(--teal)); }
+.tile{ aspect-ratio: 1; border-radius: 8px; border: 2px solid #D6D2EF; background: #EDEBFA; cursor: pointer; position: relative; transition: transform .12s ease; }
+.tile:hover{ transform: scale(1.08); border-color: var(--purple); }
+.tile.is-done{ background: linear-gradient(135deg, var(--green), var(--teal)); border-color: transparent; }
 .tile:hover::after{
   content: attr(data-tip);
   position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
@@ -496,64 +497,6 @@ body{
   font-family: var(--font-mono); font-size: 10.5px; padding: 6px 9px; border-radius: 8px;
   white-space: nowrap; z-index: 5; pointer-events: none;
 }
-
-/* ---------------- Administrar ---------------- */
-.admin-swap{ background: var(--surface-2); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; }
-.admin-swap h3{ font-family: var(--font-display); font-size: 16px; margin: 0 0 10px; }
-.admin-swap__row{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.admin-swap__row input[type="date"]{
-  font-family: var(--font-mono); font-size: 13px; font-weight: 600; padding: 8px 10px;
-  border: none; border-radius: 10px; background: #fff; color: var(--ink); flex: 1; min-width: 130px;
-}
-.swap-icon{ font-size: 18px; color: var(--purple-d); }
-.btn-brass{
-  font-family: var(--font-body); font-weight: 700; font-size: 13px; color: #fff;
-  background: linear-gradient(120deg, var(--purple), var(--purple-d));
-  border: none; border-radius: 12px; padding: 9px 16px; cursor: pointer;
-}
-.btn-brass:hover{ filter: brightness(1.1); }
-.admin-swap__hint{ font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft); margin: 8px 0 0; }
-
-.admin-filters{ display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-.admin-filters input, .admin-filters select{
-  font-family: var(--font-body); font-size: 13px; padding: 9px 12px;
-  border: none; border-radius: 12px; background: var(--surface-2); color: var(--ink);
-}
-.admin-filters input{ flex: 2; min-width: 160px; }
-.admin-filters select{ flex: 1; min-width: 140px; }
-
-.admin-table{ display: flex; flex-direction: column; gap: 8px; max-height: 560px; overflow-y: auto; }
-.admin-row{
-  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
-  background: var(--surface-2); border-radius: 12px; border-left: 5px solid var(--line);
-  transition: background .3s ease;
-}
-.admin-row.is-flash{ background: #EFEAFF; }
-.admin-row[data-subject="Antropología"]{ border-left-color: var(--antro); }
-.admin-row[data-subject="Historia económica internacional"]{ border-left-color: var(--econ); }
-.admin-row[data-subject="Historia de las ideas políticas"]{ border-left-color: var(--ideas); }
-.admin-row[data-subject="Europa en el siglo XX"]{ border-left-color: var(--europa); }
-.admin-row__swatch{ display: none; }
-.admin-row__date{
-  font-family: var(--font-mono); font-size: 12px; font-weight: 700; padding: 6px 8px;
-  border: none; border-radius: 8px; background: #fff; color: var(--ink); width: 132px; flex-shrink: 0;
-}
-.admin-row__info{ flex: 1; min-width: 0; }
-.admin-row__meta{
-  display: flex; align-items: center; gap: 6px;
-  font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--ink-soft);
-  text-transform: uppercase; margin-bottom: 2px;
-}
-.admin-row__title{ font-size: 13px; font-weight: 600; color: var(--ink); }
-.admin-row.is-done .admin-row__title{ text-decoration: line-through; color: var(--ink-soft); }
-.admin-row__pages{ font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-soft); flex-shrink: 0; }
-.admin-row__status{
-  width: 28px; height: 28px; border-radius: 50%; border: none; flex-shrink: 0; cursor: pointer;
-  background: #fff; box-shadow: inset 0 0 0 2px var(--line); color: transparent;
-  display: flex; align-items: center; justify-content: center;
-}
-.admin-row.is-done .admin-row__status{ background: linear-gradient(135deg, var(--green), var(--teal)); box-shadow: none; }
-.admin-row.is-done .admin-row__status::after{ content: "✓"; color: #fff; font-size: 13px; font-weight: 700; }
 
 /* ============================================================
    EJERCICIO — sección de rutina de fuerza en casa

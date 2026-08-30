@@ -17,8 +17,6 @@ const sb = createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonK
 
 let READINGS = [];      // cache local de todas las lecturas
 let currentView = "today";
-let adminSearch = "";
-let adminSubjectFilter = "";
 
 // ---------------- Utilidades de fecha ----------------
 function todayISO() {
@@ -117,34 +115,6 @@ async function moveReading(reading, newDate, originEl) {
 
   const { error } = await sb.from("readings").update({ scheduled_date: newDate }).eq("id", reading.id);
   if (error) { console.error(error); loadReadings(); }
-}
-
-async function updateReadingDate(reading, newDate) {
-  if (!newDate || newDate === reading.scheduled_date) return;
-  const isAdvance = newDate < reading.original_date;
-  reading.scheduled_date = newDate;
-  renderCurrentView();
-  if (isAdvance) showToast("¡Vas adelantado! 🌟", "advance");
-  const { error } = await sb.from("readings").update({ scheduled_date: newDate }).eq("id", reading.id);
-  if (error) { console.error(error); loadReadings(); }
-}
-
-async function swapDates(dateA, dateB) {
-  if (!dateA || !dateB || dateA === dateB) return;
-  const idsA = READINGS.filter((r) => r.scheduled_date === dateA).map((r) => r.id);
-  const idsB = READINGS.filter((r) => r.scheduled_date === dateB).map((r) => r.id);
-  if (idsA.length === 0 && idsB.length === 0) {
-    alert("No hay lecturas programadas en ninguna de las dos fechas.");
-    return;
-  }
-  READINGS.forEach((r) => {
-    if (r.scheduled_date === dateA) r.scheduled_date = dateB;
-    else if (r.scheduled_date === dateB) r.scheduled_date = dateA;
-  });
-  renderCurrentView();
-  if (idsA.length) await sb.from("readings").update({ scheduled_date: dateB }).in("id", idsA);
-  if (idsB.length) await sb.from("readings").update({ scheduled_date: dateA }).in("id", idsB);
-  loadReadings();
 }
 
 // ---------------- Efectos: confetti y toasts ----------------
@@ -308,18 +278,29 @@ function renderToday() {
   renderList(document.getElementById("today-list"), list, "No hay lecturas programadas para este día.");
 }
 
+function keepScrollAnchored() {
+  // evita el salto de scroll cuando el nuevo día tiene menos lecturas
+  // (y por lo tanto la página se hace más corta): reancla la vista a la
+  // tarjeta de arriba en vez de dejar que el navegador recorte el scroll.
+  const anchor = document.getElementById("today-card");
+  if (anchor) anchor.scrollIntoView({ block: "start", behavior: "auto" });
+}
+
 function initTodayNav() {
   document.getElementById("today-next").addEventListener("click", () => {
     viewedDate = addDays(viewedDate, -1);
     renderToday();
+    keepScrollAnchored();
   });
   document.getElementById("today-prev").addEventListener("click", () => {
     viewedDate = addDays(viewedDate, 1);
     renderToday();
+    keepScrollAnchored();
   });
   document.getElementById("today-jump").addEventListener("click", () => {
     viewedDate = todayISO();
     renderToday();
+    keepScrollAnchored();
   });
 }
 
@@ -373,84 +354,6 @@ function renderProgress() {
   });
 }
 
-// ---------------- Vista: ADMINISTRAR ----------------
-function renderAdmin() {
-  const container = document.getElementById("admin-table");
-  const q = adminSearch.trim().toLowerCase();
-  let items = [...READINGS];
-  if (adminSubjectFilter) items = items.filter((r) => r.subject === adminSubjectFilter);
-  if (q) items = items.filter((r) => r.title.toLowerCase().includes(q));
-  items.sort((a, b) => {
-    if (a.scheduled_date !== b.scheduled_date) return a.scheduled_date < b.scheduled_date ? -1 : 1;
-    const ai = SUBJECT_ORDER.indexOf(a.subject);
-    const bi = SUBJECT_ORDER.indexOf(b.subject);
-    if (ai !== bi) return ai - bi;
-    return a.seq - b.seq;
-  });
-
-  container.innerHTML = "";
-  if (items.length === 0) {
-    const p = document.createElement("p");
-    p.className = "empty";
-    p.textContent = "Ninguna lectura coincide con el filtro.";
-    container.appendChild(p);
-    return;
-  }
-
-  const tpl = document.getElementById("tpl-admin-row");
-  items.forEach((r) => {
-    const node = tpl.content.firstElementChild.cloneNode(true);
-    node.dataset.subject = r.subject;
-    node.classList.toggle("is-done", r.status === "done");
-
-    const dateInput = node.querySelector(".admin-row__date");
-    dateInput.value = r.scheduled_date;
-    dateInput.addEventListener("change", () => {
-      updateReadingDate(r, dateInput.value);
-      node.classList.add("is-flash");
-      setTimeout(() => node.classList.remove("is-flash"), 600);
-    });
-
-    node.querySelector(".admin-row__subject").textContent = r.subject;
-    node.querySelector(".admin-row__nro").textContent = `n.º ${r.nro}`;
-    node.querySelector(".admin-row__title").textContent = r.title;
-    node.querySelector(".admin-row__pages").textContent = `${r.pages}p`;
-    node.querySelector(".admin-row__status").addEventListener("click", () => toggleDone(r));
-
-    container.appendChild(node);
-  });
-}
-
-function populateAdminSubjectFilter() {
-  const select = document.getElementById("admin-subject-filter");
-  SUBJECT_ORDER.forEach((s) => {
-    const opt = document.createElement("option");
-    opt.value = s;
-    opt.textContent = s;
-    select.appendChild(opt);
-  });
-  select.addEventListener("change", () => {
-    adminSubjectFilter = select.value;
-    renderAdmin();
-  });
-}
-
-function initAdminControls() {
-  populateAdminSubjectFilter();
-  document.getElementById("admin-search").addEventListener("input", (e) => {
-    adminSearch = e.target.value;
-    renderAdmin();
-  });
-  document.getElementById("swap-btn").addEventListener("click", () => {
-    const a = document.getElementById("swap-date-a").value;
-    const b = document.getElementById("swap-date-b").value;
-    if (!a || !b) { alert("Elegí las dos fechas a intercambiar."); return; }
-    if (confirm(`¿Intercambiar todas las lecturas entre ${formatLong(a)} y ${formatLong(b)}?`)) {
-      swapDates(a, b);
-    }
-  });
-}
-
 // ============================================================
 // EJERCICIO — rutina de fuerza en casa (Día A / Día B)
 // Entrenador: recomposición corporal, sin gimnasio, 12-15 min/sesión,
@@ -458,8 +361,10 @@ function initAdminControls() {
 // semana, descanso. Vigente hasta el 20/12/2026.
 // ============================================================
 
-const WORKOUT_ANCHOR = "2026-08-24"; // lunes = Día A
+const WORKOUT_ANCHOR = "2026-08-25"; // martes = Día A (primer día hábil de la nueva rotación)
 const WORKOUT_END = "2026-12-20";
+const WORKOUT_WEEKDAYS = [2, 4, 6, 0]; // martes, jueves, sábado, domingo — 4 sesiones/semana
+// descanso: lunes, miércoles, viernes (siempre días de semana, nunca fin de semana)
 
 const EXERCISES_A = [
   { key: "goblet-squat", name: "Sentadilla goblet", spec: "3×12 · 10kg",
@@ -499,14 +404,13 @@ const VARIATIONS_B = [
 function getWorkoutInfo(iso) {
   const d = dateFromISO(iso);
   const dow = d.getDay();
-  if (dow === 0 || dow === 6) return { type: "rest" };
+  if (!WORKOUT_WEEKDAYS.includes(dow)) return { type: "rest" };
   if (iso < WORKOUT_ANCHOR || iso > WORKOUT_END) return { type: "out" };
   let count = 0;
   const cur = dateFromISO(WORKOUT_ANCHOR);
   const target = dateFromISO(iso);
   while (cur <= target) {
-    const cdow = cur.getDay();
-    if (cdow !== 0 && cdow !== 6) count++;
+    if (WORKOUT_WEEKDAYS.includes(cur.getDay())) count++;
     cur.setDate(cur.getDate() + 1);
   }
   const idx = count - 1;
@@ -638,7 +542,6 @@ function renderExerciseWeek() {
 function renderCurrentView() {
   if (currentView === "today") renderToday();
   else if (currentView === "progress") renderProgress();
-  else if (currentView === "admin") renderAdmin();
   else if (currentView === "exercise") renderExercise();
 }
 
@@ -660,7 +563,6 @@ document.addEventListener("DOMContentLoaded", () => {
     tab.addEventListener("click", () => setView(tab.dataset.view));
   });
   initTodayNav();
-  initAdminControls();
   tickClock();
   loadReadings();
   loadWorkouts();
